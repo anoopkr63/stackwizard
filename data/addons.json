@@ -1,0 +1,357 @@
+{
+  "groups": [
+    {
+      "id": "code-health",
+      "label": "Code health",
+      "help": "Keeps code tidy.",
+      "toggles": [
+        {
+          "id": "eslint-prettier",
+          "label": "ESLint + Prettier",
+          "help": "Finds mistakes, formats code.",
+          "commands": ["__ADD_DEV__ eslint prettier eslint-config-prettier", "__PMX__ eslint --init"],
+          "notes": ["Adds checker + formatter", "Creates settings (accept defaults)"]
+        },
+        {
+          "id": "husky",
+          "label": "Husky check before save",
+          "help": "Blocks messy commits.",
+          "commands": ["__ADD_DEV__ husky", "__PMX__ husky init"],
+          "notes": ["Adds Husky", "Checks code before every commit"]
+        }
+      ]
+    },
+    {
+      "id": "backend",
+      "label": "Backend",
+      "help": "Only if you need your own server.",
+      "options": [
+        { "id": "none", "label": "No backend", "hint": "Front end only", "commands": [], "notes": [] },
+        {
+          "id": "express",
+          "label": "Express",
+          "hint": "Simple server",
+          "commands": ["__ADD__ express", "__ADD_DEV__ @types/express"],
+          "notes": ["Adds a small Node server", "Type info for Express (TS only)"]
+        },
+        {
+          "id": "nestjs",
+          "label": "NestJS",
+          "hint": "Structured",
+          "commands": ["cd .. && __PMX__ @nestjs/cli new server && cd my-app"],
+          "notes": ["Creates server/ next door, then returns to my-app"]
+        },
+        {
+          "id": "fastapi",
+          "label": "FastAPI",
+          "hint": "Python",
+          "commands": ["pip install fastapi uvicorn", "mkdir server"],
+          "notes": ["Installs FastAPI + runner", "Makes a server folder"]
+        },
+        {
+          "id": "django",
+          "label": "Django",
+          "hint": "Python + all",
+          "commands": ["pip install django", "django-admin startproject server ."],
+          "notes": ["Installs Django", "Creates project files here"]
+        },
+        {
+          "id": "laravel",
+          "label": "Laravel",
+          "hint": "PHP",
+          "commands": ["composer create-project laravel/laravel server"],
+          "notes": ["Creates server/ (needs PHP + Composer)"]
+        },
+        {
+          "id": "gin",
+          "label": "Go (Gin)",
+          "hint": "Go",
+          "commands": ["mkdir server", "cd server && go mod init server && go get github.com/gin-gonic/gin"],
+          "notes": ["Makes server/ with Gin (needs Go)"]
+        },
+        {
+          "id": "rails",
+          "label": "Rails",
+          "hint": "Ruby",
+          "commands": ["gem install rails", "rails new server --skip-bundle"],
+          "notes": ["Installs Rails", "Creates server/"]
+        }
+      ]
+    },
+    {
+      "id": "database",
+      "label": "Database",
+      "help": "Where your data lives.",
+      "options": [
+        { "id": "none", "label": "No database", "hint": "Static site", "commands": [], "notes": [] },
+        {
+          "id": "postgres",
+          "label": "PostgreSQL",
+          "hint": "Popular",
+          "commands": ["docker run --name stackwizard-db -e POSTGRES_PASSWORD=dev -p 5432:5432 -d postgres:16"],
+          "notes": ["Starts Postgres via Docker (password: dev)"]
+        },
+        {
+          "id": "mysql",
+          "label": "MySQL",
+          "hint": "Classic",
+          "commands": ["docker run --name stackwizard-db -e MYSQL_ROOT_PASSWORD=dev -p 3306:3306 -d mysql:8"],
+          "notes": ["Starts MySQL via Docker (password: dev)"]
+        },
+        {
+          "id": "mongodb",
+          "label": "MongoDB",
+          "hint": "Documents",
+          "commands": ["docker run --name stackwizard-db -p 27017:27017 -d mongo:7"],
+          "notes": ["Starts MongoDB via Docker"]
+        },
+        {
+          "id": "sqlite",
+          "label": "SQLite",
+          "hint": "One file",
+          "commands": [],
+          "notes": ["One file. Created by the ORM step."]
+        },
+        {
+          "id": "supabase",
+          "label": "Supabase",
+          "hint": "Hosted",
+          "commands": ["__ADD__ @supabase/supabase-js"],
+          "notes": ["Adds Supabase. Keys go in .env."]
+        },
+        {
+          "id": "firebase",
+          "label": "Firebase",
+          "hint": "Google",
+          "commands": ["__ADD__ firebase"],
+          "notes": ["Adds Firebase. Connect in its console."]
+        }
+      ]
+    },
+    {
+      "id": "orm",
+      "label": "Database helper (ORM)",
+      "help": "Lets code talk to the database.",
+      "dependsOn": "database",
+      "showWhenNot": ["none", "supabase", "firebase"],
+      "options": [
+        { "id": "none", "label": "None", "hint": "Write SQL myself", "commands": [], "notes": [] },
+        {
+          "id": "prisma",
+          "label": "Prisma",
+          "hint": "Popular",
+          "commands": ["__ADD_DEV__ prisma", "__ADD__ @prisma/client", "__PMX__ prisma init"],
+          "notes": ["Adds Prisma tools", "Adds the Prisma client", "Creates Prisma settings"]
+        },
+        {
+          "id": "drizzle",
+          "label": "Drizzle",
+          "hint": "Light",
+          "commands": ["__ADD__ drizzle-orm", "__ADD_DEV__ drizzle-kit"],
+          "notes": ["Adds Drizzle", "Adds Drizzle setup tools"]
+        },
+        {
+          "id": "typeorm",
+          "label": "TypeORM",
+          "hint": "Full",
+          "commands": ["__ADD__ typeorm reflect-metadata", "__ADD__ pg"],
+          "notes": ["Adds TypeORM", "Adds the Postgres driver"]
+        },
+        {
+          "id": "mongoose",
+          "label": "Mongoose",
+          "hint": "MongoDB only",
+          "commands": ["__ADD__ mongoose"],
+          "notes": ["MongoDB helper. Use with MongoDB."]
+        }
+      ]
+    },
+    {
+      "id": "auth",
+      "label": "Login (auth)",
+      "help": "How people sign in.",
+      "options": [
+        { "id": "none", "label": "No login", "hint": "Public site", "commands": [], "notes": [] },
+        {
+          "id": "nextauth",
+          "label": "Auth.js / NextAuth",
+          "hint": "For Next.js",
+          "commands": ["__ADD__ next-auth"],
+          "notes": ["Adds Auth.js. Best with Next.js."]
+        },
+        {
+          "id": "clerk",
+          "label": "Clerk",
+          "hint": "Easiest",
+          "commands": ["__ADD__ @clerk/nextjs"],
+          "notes": ["Adds Clerk. Keys go in .env."]
+        },
+        {
+          "id": "auth0",
+          "label": "Auth0",
+          "hint": "Enterprise",
+          "commands": ["__ADD__ @auth0/nextjs-auth0"],
+          "notes": ["Adds Auth0. Keys go in .env."]
+        },
+        {
+          "id": "firebase-auth",
+          "label": "Firebase Auth",
+          "hint": "For Firebase",
+          "commands": ["__ADD__ firebase"],
+          "notes": ["Adds Firebase login."]
+        },
+        {
+          "id": "supabase-auth",
+          "label": "Supabase Auth",
+          "hint": "For Supabase",
+          "commands": ["__ADD__ @supabase/ssr"],
+          "notes": ["Adds Supabase login."]
+        }
+      ]
+    },
+    {
+      "id": "payments",
+      "label": "Payments",
+      "help": "Only if you charge money.",
+      "options": [
+        { "id": "none", "label": "No payments", "hint": "Free site", "commands": [], "notes": [] },
+        {
+          "id": "stripe",
+          "label": "Stripe",
+          "hint": "Popular",
+          "commands": ["__ADD__ stripe @stripe/stripe-js"],
+          "notes": ["Adds Stripe. Test keys go in .env."]
+        },
+        {
+          "id": "paypal",
+          "label": "PayPal",
+          "hint": "Trusted",
+          "commands": ["__ADD__ @paypal/checkout-server-sdk @paypal/paypal-js"],
+          "notes": ["Adds PayPal. Sandbox keys needed."]
+        },
+        {
+          "id": "paddle",
+          "label": "Paddle",
+          "hint": "Tax handled",
+          "commands": ["__ADD__ @paddle/paddle-js"],
+          "notes": ["Adds Paddle (handles sales tax)."]
+        },
+        {
+          "id": "lemonsqueezy",
+          "label": "Lemon Squeezy",
+          "hint": "Simplest",
+          "commands": [],
+          "notes": ["No code needed — create a store."]
+        },
+        {
+          "id": "razorpay",
+          "label": "Razorpay",
+          "hint": "India",
+          "commands": ["__ADD__ razorpay"],
+          "notes": ["Adds Razorpay. Test keys needed."]
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "label": "Testing",
+      "help": "Auto-checks your site still works.",
+      "options": [
+        { "id": "none", "label": "No tests yet", "hint": "Add later", "commands": [], "notes": [] },
+        {
+          "id": "vitest",
+          "label": "Vitest",
+          "hint": "Fast",
+          "commands": ["__ADD_DEV__ vitest"],
+          "notes": ["Adds Vitest for logic tests."]
+        },
+        {
+          "id": "jest",
+          "label": "Jest",
+          "hint": "Classic",
+          "commands": ["__ADD_DEV__ jest @types/jest ts-jest"],
+          "notes": ["Adds Jest for logic tests."]
+        },
+        {
+          "id": "playwright",
+          "label": "Playwright",
+          "hint": "Real browser",
+          "commands": ["__ADD_DEV__ @playwright/test", "__PMX__ playwright install"],
+          "notes": ["Tests your site in a real browser", "Downloads browsers (one-time)"]
+        },
+        {
+          "id": "cypress",
+          "label": "Cypress",
+          "hint": "Visual",
+          "commands": ["__ADD_DEV__ cypress"],
+          "notes": ["Adds Cypress for click tests."]
+        }
+      ]
+    },
+    {
+      "id": "cicd",
+      "label": "Auto-checks (CI/CD)",
+      "help": "Runs tests on every push.",
+      "options": [
+        { "id": "none", "label": "None yet", "hint": "Add later", "commands": [], "notes": [] },
+        {
+          "id": "github-actions",
+          "label": "GitHub Actions",
+          "hint": "For GitHub",
+          "commands": ["mkdir -p .github/workflows", "__CI_FILE__"],
+          "notes": ["Makes the workflows folder", "Checks install + build on every push"]
+        },
+        {
+          "id": "gitlab-ci",
+          "label": "GitLab CI",
+          "hint": "For GitLab",
+          "commands": ["__GITLAB_CI_FILE__"],
+          "notes": ["Checks install + build on every push"]
+        }
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI assistant",
+      "help": "Writes AI coding rules for your project.",
+      "options": [
+        { "id": "none", "label": "No AI rules", "hint": "Skip", "commands": [], "notes": [] },
+        {
+          "id": "cursor",
+          "label": "Cursor",
+          "hint": "Uses .muserules",
+          "commands": ["__AI_RULES_CURSOR__"],
+          "notes": ["Creates .muserules with your stack + rules"]
+        },
+        {
+          "id": "copilot",
+          "label": "GitHub Copilot",
+          "hint": "Uses copilot-instructions",
+          "commands": ["mkdir -p .github", "__AI_RULES_COPILOT__"],
+          "notes": ["Makes the folder for Copilot rules", "Creates copilot-instructions.md with your stack + rules"]
+        },
+        {
+          "id": "claude",
+          "label": "Claude Code",
+          "hint": "Uses CLAUDE.md",
+          "commands": ["__AI_RULES_CLAUDE__"],
+          "notes": ["Creates CLAUDE.md with your stack + rules"]
+        },
+        {
+          "id": "windsurf",
+          "label": "Windsurf",
+          "hint": "Uses .windsurfrules",
+          "commands": ["__AI_RULES_WINDSURF__"],
+          "notes": ["Creates .windsurfrules with your stack + rules"]
+        },
+        {
+          "id": "generic",
+          "label": "Generic",
+          "hint": "Uses AGENTS.md",
+          "commands": ["__AI_RULES_GENERIC__"],
+          "notes": ["Creates AGENTS.md with your stack + rules"]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1396 @@
+{
+  "colors": {
+    "backgrounds": [
+      {
+        "count": 13,
+        "value": "#ff7448"
+      },
+      {
+        "count": 11,
+        "value": "#ffef46"
+      },
+      {
+        "count": 10,
+        "value": "#fff9f6"
+      },
+      {
+        "count": 8,
+        "value": "#22c55e"
+      },
+      {
+        "count": 7,
+        "value": "#1a1a1a"
+      },
+      {
+        "count": 6,
+        "value": "#ffffff"
+      },
+      {
+        "count": 5,
+        "value": "#0f151d"
+      },
+      {
+        "count": 3,
+        "value": "#d3e1ff"
+      },
+      {
+        "count": 1,
+        "value": "#0d1117"
+      },
+      {
+        "count": 1,
+        "value": "#1450c6"
+      },
+      {
+        "count": 1,
+        "value": "#ff6a00"
+      },
+      {
+        "count": 1,
+        "value": "#635bff"
+      }
+    ],
+    "borders": [
+      {
+        "count": 10,
+        "value": "#ffffff"
+      }
+    ],
+    "cssVariables": {
+      "--accent": "lab(96.52% -.0000298023 .0000119209)",
+      "--background": "#fff9f6",
+      "--color-primary": "#ff7448",
+      "--foreground": "#0f151d",
+      "--primary": "#ff7448",
+      "--secondary": "#d3e1ff"
+    },
+    "text": [
+      {
+        "count": 959,
+        "value": "#0f151d"
+      },
+      {
+        "count": 95,
+        "value": "#000000"
+      },
+      {
+        "count": 70,
+        "value": "#ffffff"
+      },
+      {
+        "count": 21,
+        "value": "#fbfbfb"
+      },
+      {
+        "count": 16,
+        "value": "#0a0a0a"
+      },
+      {
+        "count": 13,
+        "value": "#ffef46"
+      },
+      {
+        "count": 9,
+        "value": "#ff7448"
+      },
+      {
+        "count": 8,
+        "value": "#ff8d69"
+      }
+    ]
+  },
+  "components": {
+    "accordions": {
+      "count": 6
+    },
+    "buttons": {
+      "count": 12,
+      "samples": [
+        "Past drops",
+        "Nommunity",
+        "Join the waitlist",
+        "What's the minimum order?",
+        "How fast is this, really?",
+        "What does Nomu cost?",
+        "What if a batch comes back wrong?"
+      ]
+    },
+    "cards": {
+      "count": 105,
+      "samples": []
+    },
+    "forms": {
+      "count": 2,
+      "items": [
+        {
+          "action": "",
+          "fields": [
+            "email[email] \"Email me when the drop opens\""
+          ],
+          "method": "get",
+          "submit": "Join the waitlist"
+        },
+        {
+          "action": "",
+          "fields": [
+            "email[email] \"Enter your email\""
+          ],
+          "method": "get",
+          "submit": "Book Demo"
+        }
+      ]
+    },
+    "icons": {
+      "count": 224
+    },
+    "iframes": {
+      "count": 0
+    },
+    "inputs": {
+      "count": 2
+    },
+    "modals": {
+      "count": 0
+    },
+    "sliders": {
+      "count": 0
+    },
+    "tables": {
+      "count": 0
+    },
+    "tabs": {
+      "count": 0
+    },
+    "videos": {
+      "count": 0
+    }
+  },
+  "copy": "Nomu Past drops Nommunity Whitelist Book a demo Backed by Create your dream merch on autopilot Ditch the maze of tools, vendors and middlemen. Go from prompt to physical product in 5 minutes. emailing 12 manufacturers fiat checkout three fulfillment partners two warehouses on different continents a storefront + 5 plugins accept crypto a tax filing service per region agent discoverability email updates & promos a support team in Manila a sampling and QC agent an inventory spreadsheet a workspace of SOPs Supported by Grow your brand , not your ops. Try the first AI commerce platform that replaces the manual maze of tools, vendors, and middlemen. Book a demo to automate your storefront, supply chain, and everything in between. Book a demo See what you can run on Nomu Find your ideal suppliers. Nomu agents reach out to global manufacturers and return with the best quotes for your brief. Chuck Maurice (Solflare) Need a dip-dye tee for our Solflare drop. solflare-tee.webp Check samples & batches super fast. No int'l shipping downtime. Nomu QC's your products locally. Luke Nomu · Ops Lead 11:08 486 / 14 Sample inspected Dye migration to shoulders. Factory rerun on next batch. Ship globally without headaches. Pick & pack + sales tax support wherever you sell. Launch a new store that converts every visitor. Gate products, calibrate price, and offer perks in real time to win over every human or agent. solflare.shop Community OG monkelover.sol G4G Scout Badge 1 of 44 unlocked Solflare Varsity Jacket G4G Special Edition Solflare Varsity Jacket $210 Free −25% discount Free shipping Anon Whale 7xK…r8 Net volume last year: +$200K High value prospect SALE 1 · 10:42 AM Anonymous whale New customer acquired SALE 2 · 10:43 AM monkelover.sol Core member reinforced Oh yeah, and all this too. Live · $1M GMV Create Gachas Your own interactive blind box drops. Coming soon Launch Pre-sales Pre-sell products w/ rev share for backers. Forecast inventory Avoid stockouts or dead stock. AI + human support Handled according to your SOPs. Send mkt emails Beautiful announcement emails in-house. Sell to AI agents Discoverable to agents & x402-ready checkout. Accept fiat & crypto Cards, SPL tokens. One native checkout. Tracking on every order Live status updates across every channel. Forecast inventory Avoid stockouts or dead stock. AI + human support Handled according to your SOPs. Send mkt emails Beautiful announcement emails in-house. Sell to AI agents Discoverable to agents & x402-ready checkout. Accept fiat & crypto Cards, SPL tokens. One native checkout. Tracking on every order Live status updates across every channel. Forecast inventory Avoid stockouts or dead stock. AI + human support Handled according to your SOPs. Send mkt emails Beautiful announcement emails in-house. Sell to AI agents Discoverable to agents & x402-ready checkout. Accept fiat & crypto Cards, SPL tokens. One native checkout. Tracking on every order Live status updates across every channel. Wear your own merch at Breakpoint 2026 Early access to Nomu for the Solana community. Design your tee in minutes, made and delivered before the doors open in London. Join the waitlist Now in early access for brands Get your full commerce ops, out-of-the-box. Free your team. Plug into the first end-to-end supply chain software. Run as a white-glove service. Ship faster Cut costs Scale unconstrained Warehousing Instant & scalable storage. LIMITED EARLY BIRD PERK Talk to us now to get your merch on a BP26 booth. Book a demo THE STORY SO FAR 10K+ Products sold $1M+ GMV $30K+ Rewards distributed N Nomu @NomuStores Solana P Pedr◎ @Pedromiranda A @MonkeDAO x @NomuStores care package has hit @Solana NYC N Nomu @NomuStores CoinGecko published its top 5 emerging tokenized assets. Our drop landed #1 on that list. 550 bottles. $69k total volume. First fine wine blind box on-chain. Grateful to everyone who took part and to @dVINLabs for building it with us. More history to be made 🥂 S Superteam Balkan @SuperteamBLKN Yesterday’s Demo Day marked the end of Startup Village Split. The winners: 🥇 @biqProtocol - The team that proved consistency is key. 🥈 @EatwithNomu - One of the most beautiful pitches we’ve seen. 🥉 @solarsurgeio - A 17 y/o chad aiming to build the first Bosnian unicorn M Matt 🐡 @mattdgn LFGGGGGGGGGGGGGGGGGG!!!! Nomu just became a 2x Colosseum winner 🫪🫪 Absolutely surreal. Thank you to everyone who's been believing in us 🧡 C Colosseum @colosseum 1/ Announcing the winners of the Solana Frontier Hackathon!🏔️ Read about the winners & honorable mentions: https://t.co/9HXbhNtkU2 The subset of winning teams accepted into our VC fund's next accelerator cohort will be shared in the coming days. Congrats to all! 🏆 I Ivan 🧳 @ivan_nomadz On Monday, I received a DM from @depitchsofian from @depitch_academy. He asked me to share materials about @NOMADZxyz, as he wants to include it as an example of a successful startup in his pitch masterclass during the @solanamobile and @RadiantsDAO Monolith Hackathon. DePitch S Solflare - The Solana Wallet @solflare Solflare users prevail once again 🎉 Who wants to pop a bottle with Nomu? N Nomu @NomuStores Valentine’s is coming, and kings & queens don’t buy wine at the supermarket. 👑🍷 So we’re excited to welcome @solflare as the launch wallet for @dVINLabs Reveal: Rituals of Love , the first fine-wine blind box on Solana. One price. Reveal 1 of 7 extraordinary bottles. All S Solana Stable Future @SolStableFuture The summit closed with an energy-packed panel on why founders are choosing Solana 🌐⚡️ @simonmolitor (Co-founder, @solanaidentity ), @gmryot (Co-founder, @xitadel_fi ), and @DLophem (Founder, @EatwithNomu) moderated by Eno @YouKnowEno (Chief Vibes Officer, @sanctumso ) L Lucid Drakes @LucidDrakes We are proud to support Nomu in their next stage of growth 🤝 WAGEW N Nomu @NomuStores Nomu has entered the Den! 🐡🐉 We're thrilled to announce that we've secured a strategic investment from the @LucidDrakes community. The Drakes are among the most distinguished communities in Web3. Beyond their unique art and cool jackets, they are defined by the caliber of N Nomu @NomuStores Solana P Pedr◎ @Pedromiranda A @MonkeDAO x @NomuStores care package has hit @Solana NYC N Nomu @NomuStores CoinGecko published its top 5 emerging tokenized assets. Our drop landed #1 on that list. 550 bottles. $69k total volume. First fine wine blind box on-chain. Grateful to everyone who took part and to @dVINLabs for building it with us. More history to be made 🥂 S Superteam Balkan @SuperteamBLKN Yesterday’s Demo Day marked the end of Startup Village Split. The winners: 🥇 @biqProtocol - The team that proved consistency is key. 🥈 @EatwithNomu - One of the most beautiful pitches we’ve seen. 🥉 @solarsurgeio - A 17 y/o chad aiming to build the first Bosnian unicorn M Matt 🐡 @mattdgn LFGGGGGGGGGGGGGGGGGG!!!! Nomu just became a 2x Colosseum winner 🫪🫪 Absolutely surreal. Thank you to everyone who's been believing in us 🧡 C Colosseum @colosseum 1/ Announcing the winners of the Solana Frontier Hackathon!🏔️ Read about the winners & honorable mentions: https://t.co/9HXbhNtkU2 The subset of winning teams accepted into our VC fund's next accelerator cohort will be shared in the coming days. Congrats to all! 🏆 I Ivan 🧳 @ivan_nomadz On Monday, I received a DM from @depitchsofian from @depitch_academy. He asked me to share materials about @NOMADZxyz, as he wants to include it as an example of a successful startup in his pitch masterclass during the @solanamobile and @RadiantsDAO Monolith Hackathon. DePitch S Solflare - The Solana Wallet @solflare Solflare users prevail once again 🎉 Who wants to pop a bottle with Nomu? N Nomu @NomuStores Valentine’s is coming, and kings & queens don’t buy wine at the supermarket. 👑🍷 So we’re excited to welcome @solflare as the launch wallet for @dVINLabs Reveal: Rituals of Love , the first fine-wine blind box on Solana. One price. Reveal 1 of 7 extraordinary bottles. All S Solana",
+  "ctas": [
+    "Nomu",
+    "Past drops",
+    "Nommunity",
+    "Whitelist",
+    "Book a demo",
+    "Backed by",
+    "Join the waitlist",
+    "LLinny@0xLinnyx0nomu at mtndao demo day 🐡🗻",
+    "L Linny @0xLinnyx0 nomu at mtndao demo day 🐡🗻",
+    "What's the minimum order?",
+    "How fast is this, really?",
+    "What does Nomu cost?",
+    "What if a batch comes back wrong?",
+    "What if I don't have a product yet?",
+    "Read field notes →",
+    "About Nomu →",
+    "Want to see Nomu in action? Request a demo",
+    "Book Demo",
+    "The Monke",
+    "Rituals of Love"
+  ],
+  "headings": [
+    {
+      "level": "H1",
+      "text": "Create your dream merch on autopilot"
+    },
+    {
+      "level": "H2",
+      "text": "Grow your brand , not your ops."
+    },
+    {
+      "level": "H2",
+      "text": "See what you can run on Nomu"
+    },
+    {
+      "level": "H3",
+      "text": "Find your ideal suppliers."
+    },
+    {
+      "level": "H3",
+      "text": "Check samples & batches super fast."
+    },
+    {
+      "level": "H3",
+      "text": "Ship globally without headaches."
+    },
+    {
+      "level": "H3",
+      "text": "Launch a new store that converts every visitor."
+    },
+    {
+      "level": "H3",
+      "text": "Oh yeah, and all this too."
+    },
+    {
+      "level": "H2",
+      "text": "Wear your own merch at Breakpoint 2026"
+    },
+    {
+      "level": "H2",
+      "text": "Get your full commerce ops, out-of-the-box."
+    },
+    {
+      "level": "H3",
+      "text": "Talk to us now to get your merch on a BP26 booth."
+    },
+    {
+      "level": "H3",
+      "text": "THE STORY SO FAR"
+    },
+    {
+      "level": "H2",
+      "text": "You got questions? We got answers."
+    },
+    {
+      "level": "H3",
+      "text": "What's the minimum order?"
+    },
+    {
+      "level": "H3",
+      "text": "How fast is this, really?"
+    },
+    {
+      "level": "H3",
+      "text": "What does Nomu cost?"
+    },
+    {
+      "level": "H3",
+      "text": "What if a batch comes back wrong?"
+    },
+    {
+      "level": "H3",
+      "text": "What if I don't have a product yet?"
+    },
+    {
+      "level": "H3",
+      "text": "Do I need to know anything about crypto to use Nomu?"
+    },
+    {
+      "level": "H2",
+      "text": "You're the creative director."
+    },
+    {
+      "level": "H2",
+      "text": "We're everything else."
+    },
+    {
+      "level": "H3",
+      "text": "Past drops"
+    },
+    {
+      "level": "H3",
+      "text": "Resources"
+    },
+    {
+      "level": "H3",
+      "text": "Nommunity"
+    },
+    {
+      "level": "H3",
+      "text": "Social"
+    }
+  ],
+  "hero": {
+    "ctas": [
+      "Backed by"
+    ],
+    "heading": "Create your dream merch on autopilot",
+    "subtext": "Ditch the maze of tools, vendors and middlemen. Go from prompt to physical product in 5 minutes."
+  },
+  "layout": {
+    "bodyWidth": 1945,
+    "breakpoints": [
+      {
+        "matches": true,
+        "query": "(min-width: 360px)"
+      },
+      {
+        "matches": true,
+        "query": "(min-width: 768px)"
+      },
+      {
+        "matches": true,
+        "query": "(min-width: 1024px)"
+      },
+      {
+        "matches": true,
+        "query": "(min-width: 1280px)"
+      }
+    ],
+    "captureViewport": {
+      "h": 912,
+      "w": 1960
+    },
+    "commonRadius": [
+      {
+        "count": 99,
+        "value": "2.68435e+07px"
+      },
+      {
+        "count": 50,
+        "value": "58px"
+      },
+      {
+        "count": 45,
+        "value": "50px"
+      },
+      {
+        "count": 7,
+        "value": "24px"
+      },
+      {
+        "count": 5,
+        "value": "48px"
+      }
+    ],
+    "flexContainers": 289,
+    "gridContainers": 6,
+    "mediaBlockedSheets": 0,
+    "mediaMinWidths": [],
+    "mediaRuleCount": 6,
+    "overflowX": false,
+    "shadowedElements": 150,
+    "stickyHeaders": 3
+  },
+  "media": {
+    "favicon": "https://nomu.store/favicon.ico",
+    "imageCount": 167,
+    "images": [
+      {
+        "alt": "",
+        "h": 32,
+        "src": "https://nomu.store/_next/image?url=%2Ficons%2Ftrophy.webp&w=128&q=75&dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+        "w": 32
+      },
+      {
+        "alt": "Colosseum",
+        "h": 14,
+        "src": "https://nomu.store/logos/colosseum.svg?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+        "w": 108
+      },
+      {
+        "alt": "Alibaba",
+        "h": 16,
+        "src": "https://nomu.store/logos/alibaba.svg",
+        "w": 16
+      },
+      {
+        "alt": "Stripe",
+        "h": 16,
+        "src": "https://nomu.store/logos/stripe.svg",
+        "w": 16
+      },
+      {
+        "alt": "Shopify",
+        "h": 16,
+        "src": "https://nomu.store/logos/shopify.svg",
+        "w": 16
+      },
+      {
+        "alt": "Solana Pay",
+        "h": 33,
+        "src": "https://nomu.store/icons/solanapay.webp",
+        "w": 46
+      },
+      {
+        "alt": "ChatGPT",
+        "h": 20,
+        "src": "https://nomu.store/icons/chatgpt.webp",
+        "w": 20
+      },
+      {
+        "alt": "Klaviyo",
+        "h": 21,
+        "src": "https://nomu.store/icons/klaviyo.webp",
+        "w": 21
+      },
+      {
+        "alt": "Zendesk",
+        "h": 16,
+        "src": "https://nomu.store/logos/zendesk.svg",
+        "w": 16
+      },
+      {
+        "alt": "Google Sheets",
+        "h": 19,
+        "src": "https://nomu.store/logos/googlesheets.svg",
+        "w": 19
+      },
+      {
+        "alt": "Notion",
+        "h": 21,
+        "src": "https://nomu.store/logos/notion.svg",
+        "w": 21
+      },
+      {
+        "alt": "Colosseum",
+        "h": 12,
+        "src": "https://nomu.store/logos/colosseum.svg",
+        "w": 93
+      },
+      {
+        "alt": "Solflare",
+        "h": 20,
+        "src": "https://nomu.store/logos/solflare.svg",
+        "w": 84
+      },
+      {
+        "alt": "MonkeDAO",
+        "h": 12,
+        "src": "https://nomu.store/logos/monkedao.svg",
+        "w": 103
+      },
+      {
+        "alt": "Superteam",
+        "h": 16,
+        "src": "https://nomu.store/logos/superteam.svg",
+        "w": 105
+      },
+      {
+        "alt": "SwissBorg",
+        "h": 18,
+        "src": "https://nomu.store/logos/swissborg.svg",
+        "w": 100
+      },
+      {
+        "alt": "Raposa",
+        "h": 16,
+        "src": "https://nomu.store/logos/raposa.svg",
+        "w": 75
+      },
+      {
+        "alt": "Lucid Drakes",
+        "h": 16,
+        "src": "https://nomu.store/logos/luciddrakes.svg",
+        "w": 127
+      },
+      {
+        "alt": "Sol Brothers",
+        "h": 32,
+        "src": "https://nomu.store/logos/SolBros.svg",
+        "w": 57
+      },
+      {
+        "alt": "dVin",
+        "h": 24,
+        "src": "https://nomu.store/logos/divn.svg",
+        "w": 65
+      },
+      {
+        "alt": "Perena",
+        "h": 20,
+        "src": "https://nomu.store/logos/perena.svg",
+        "w": 107
+      },
+      {
+        "alt": "Solana Insiders",
+        "h": 24,
+        "src": "https://nomu.store/logos/SolanaInsiders.svg",
+        "w": 81
+      },
+      {
+        "alt": "Colosseum",
+        "h": 12,
+        "src": "https://nomu.store/logos/colosseum.svg",
+        "w": 93
+      },
+      {
+        "alt": "Solflare",
+        "h": 20,
+        "src": "https://nomu.store/logos/solflare.svg",
+        "w": 84
+      },
+      {
+        "alt": "MonkeDAO",
+        "h": 12,
+        "src": "https://nomu.store/logos/monkedao.svg",
+        "w": 103
+      }
+    ],
+    "videos": []
+  },
+  "meta": {
+    "canonical": "https://nomu.store/",
+    "description": "Create your own merch with Nomu. Design, sample and ship custom products in 5 minutes, at the best price. Sourcing, manufacturing and fulfillment included.",
+    "lang": "en",
+    "ogDescription": "Design, sample and ship your own merch in 5 minutes, at the best price. Sourcing, manufacturing and fulfillment included.",
+    "ogImage": "https://nomu.store/opengraph-image.webp",
+    "ogTitle": "Nomu - Create your merch in 5 minutes at the best price",
+    "themeColor": "#FFF9F6",
+    "title": "Nomu - Create your merch in 5 minutes at the best price",
+    "url": "https://nomu.store/",
+    "viewport": "width=device-width, initial-scale=1, viewport-fit=cover"
+  },
+  "motion": {
+    "animatedElements": 38,
+    "animationDurations": [
+      {
+        "count": 12,
+        "value": "2.4s"
+      },
+      {
+        "count": 8,
+        "value": "1s"
+      },
+      {
+        "count": 2,
+        "value": "4.2s"
+      },
+      {
+        "count": 2,
+        "value": "3.8s"
+      },
+      {
+        "count": 1,
+        "value": "8s"
+      },
+      {
+        "count": 1,
+        "value": "9s"
+      }
+    ],
+    "animationEasings": [
+      {
+        "count": 16,
+        "value": "linear"
+      },
+      {
+        "count": 10,
+        "value": "ease-in-out"
+      },
+      {
+        "count": 8,
+        "value": "0"
+      },
+      {
+        "count": 8,
+        "value": "cubic-bezier(0"
+      },
+      {
+        "count": 8,
+        "value": "0.2"
+      },
+      {
+        "count": 8,
+        "value": "1)"
+      }
+    ],
+    "animationNames": [
+      {
+        "count": 12,
+        "value": "nomu-shimmer"
+      },
+      {
+        "count": 8,
+        "value": "swp-twinkle"
+      },
+      {
+        "count": 8,
+        "value": "ping"
+      },
+      {
+        "count": 3,
+        "value": "swp-beam"
+      },
+      {
+        "count": 2,
+        "value": "intro-reel"
+      },
+      {
+        "count": 1,
+        "value": "intro-blob-warm"
+      },
+      {
+        "count": 1,
+        "value": "intro-blob-cool"
+      },
+      {
+        "count": 1,
+        "value": "intro-logo-in"
+      }
+    ],
+    "scrollBehavior": "smooth",
+    "transitionDurations": [
+      {
+        "count": 1430,
+        "value": "0s"
+      },
+      {
+        "count": 22,
+        "value": "0.3s"
+      },
+      {
+        "count": 20,
+        "value": "0.5s"
+      },
+      {
+        "count": 15,
+        "value": "0.15s"
+      },
+      {
+        "count": 7,
+        "value": "0.7s"
+      },
+      {
+        "count": 5,
+        "value": "0.4s"
+      }
+    ],
+    "transitionEasings": [
+      {
+        "count": 1425,
+        "value": "ease"
+      },
+      {
+        "count": 66,
+        "value": "1)"
+      },
+      {
+        "count": 58,
+        "value": "0"
+      },
+      {
+        "count": 58,
+        "value": "0.2"
+      },
+      {
+        "count": 40,
+        "value": "cubic-bezier(0.4"
+      },
+      {
+        "count": 18,
+        "value": "cubic-bezier(0"
+      }
+    ],
+    "transitionProps": [
+      {
+        "count": 1428,
+        "value": "all"
+      },
+      {
+        "count": 29,
+        "value": "opacity"
+      },
+      {
+        "count": 28,
+        "value": "transform"
+      },
+      {
+        "count": 20,
+        "value": "translate"
+      },
+      {
+        "count": 18,
+        "value": "scale"
+      },
+      {
+        "count": 18,
+        "value": "rotate"
+      },
+      {
+        "count": 14,
+        "value": "box-shadow"
+      },
+      {
+        "count": 11,
+        "value": "stroke"
+      }
+    ],
+    "transitionedElements": 1500
+  },
+  "nav": {
+    "footer": [
+      {
+        "href": "https://redeem.nomu.dev/",
+        "text": "The Monke"
+      },
+      {
+        "href": "https://dvin.nomu.dev",
+        "text": "Rituals of Love"
+      },
+      {
+        "href": "https://redeem.nomu.dev",
+        "text": "Redeem"
+      },
+      {
+        "href": "/catalogue",
+        "text": "Latest productions"
+      },
+      {
+        "href": "/custom-merch-no-minimum",
+        "text": "No minimum order"
+      },
+      {
+        "href": "/merch-fulfillment",
+        "text": "Merch fulfillment"
+      },
+      {
+        "href": "/about",
+        "text": "About us"
+      },
+      {
+        "href": "/blog",
+        "text": "Field notes"
+      },
+      {
+        "href": "/brand",
+        "text": "Brand kit"
+      },
+      {
+        "href": "/legal/website-terms-of-use",
+        "text": "Legal"
+      },
+      {
+        "href": "https://t.me/nomunity",
+        "text": "Telegram"
+      },
+      {
+        "href": "https://hub.nomu.dev",
+        "text": "Holders Hub"
+      },
+      {
+        "href": "mailto:help@nomu.store",
+        "text": "Support"
+      },
+      {
+        "href": "mailto:daniel@nomu.store",
+        "text": "Contact"
+      },
+      {
+        "href": "https://twitter.com/NomuStores",
+        "text": "Twitter"
+      },
+      {
+        "href": "https://www.linkedin.com/company/nomu-labs/",
+        "text": "LinkedIn"
+      },
+      {
+        "href": "https://www.instagram.com/eatwithnomu",
+        "text": "Instagram"
+      },
+      {
+        "href": "https://github.com/NomuDev",
+        "text": "GitHub"
+      },
+      {
+        "href": "https://www.producthunt.com/products/nomu",
+        "text": "Product Hunt"
+      },
+      {
+        "href": "https://www.crunchbase.com/organization/nomu-a481",
+        "text": "Crunchbase"
+      }
+    ],
+    "header": [],
+    "nav": [
+      {
+        "href": "/",
+        "text": "Nomu"
+      },
+      {
+        "href": "/#breakpoint-2026",
+        "text": "Whitelist"
+      },
+      {
+        "href": "https://calendar.app.google/dsfij5kFg9NSMAbJA",
+        "text": "Book a demo"
+      }
+    ]
+  },
+  "scrapedAt": "2026-09-08T09:52:32.211Z",
+  "sections": [
+    {
+      "buttons": 2,
+      "heading": "",
+      "height": 82,
+      "images": 0,
+      "links": 3,
+      "selector": "nav.flex.items-center",
+      "text": "Nomu Past drops Nommunity Whitelist Book a demo",
+      "type": "nav"
+    },
+    {
+      "buttons": 7,
+      "heading": "Create your dream merch on autopilot",
+      "height": 9324,
+      "images": 167,
+      "links": 116,
+      "selector": "main",
+      "text": "Backed by Create your dream merch on autopilot Ditch the maze of tools, vendors and middlemen. Go from prompt to physical product in 5 minutes. emailing 12 manufacturers fiat checkout three fulfillment partners two wareh",
+      "type": "main"
+    },
+    {
+      "buttons": 0,
+      "heading": "Create your dream merch on autopilot",
+      "height": 883,
+      "images": 11,
+      "links": 1,
+      "selector": "section#landing-hero",
+      "text": "Backed by Create your dream merch on autopilot Ditch the maze of tools, vendors and middlemen. Go from prompt to physical product in 5 minutes. emailing 12 manufacturers fiat checkout three fulfillment partners two wareh",
+      "type": "section"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 180,
+      "images": 33,
+      "links": 0,
+      "selector": "section#landing-social-proof-logos",
+      "text": "Supported by",
+      "type": "section"
+    },
+    {
+      "buttons": 0,
+      "heading": "Grow your brand , not your ops.",
+      "height": 581,
+      "images": 0,
+      "links": 1,
+      "selector": "section#landing-grow-your-brand",
+      "text": "Grow your brand , not your ops. Try the first AI commerce platform that replaces the manual maze of tools, vendors, and middlemen. Book a demo to automate your storefront, supply chain, and everything in between. Book a ",
+      "type": "section"
+    },
+    {
+      "buttons": 0,
+      "heading": "See what you can run on Nomu",
+      "height": 1744,
+      "images": 22,
+      "links": 0,
+      "selector": "section#landing-bouncy-features",
+      "text": "See what you can run on Nomu Find your ideal suppliers. Nomu agents reach out to global manufacturers and return with the best quotes for your brief. Chuck Maurice (Solflare) Need a dip-dye tee for our Solflare drop. sol",
+      "type": "section"
+    },
+    {
+      "buttons": 0,
+      "heading": "See what you can run on Nomu",
+      "height": 1196,
+      "images": 14,
+      "links": 0,
+      "selector": "section.mx-auto.max-w-7xl",
+      "text": "See what you can run on Nomu Find your ideal suppliers. Nomu agents reach out to global manufacturers and return with the best quotes for your brief. Chuck Maurice (Solflare) Need a dip-dye tee for our Solflare drop. sol",
+      "type": "section"
+    },
+    {
+      "buttons": 1,
+      "heading": "Wear your own merch at Breakpoint 2026",
+      "height": 1003,
+      "images": 8,
+      "links": 0,
+      "selector": "section#breakpoint-2026",
+      "text": "Wear your own merch at Breakpoint 2026 Early access to Nomu for the Solana community. Design your tee in minutes, made and delivered before the doors open in London. Join the waitlist",
+      "type": "section"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 584,
+      "images": 0,
+      "links": 0,
+      "selector": "section#landing-morph-forward",
+      "text": "",
+      "type": "section"
+    },
+    {
+      "buttons": 0,
+      "heading": "Get your full commerce ops, out-of-the-box.",
+      "height": 2308,
+      "images": 92,
+      "links": 111,
+      "selector": "section#landing-supply-chain-software",
+      "text": "Now in early access for brands Get your full commerce ops, out-of-the-box. Free your team. Plug into the first end-to-end supply chain software. Run as a white-glove service. Ship faster Cut costs Scale unconstrained War",
+      "type": "section"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "NNomu@NomuStores",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "NNomu@NomuStores",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "SSolana@solana",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "NNomu@NomuStores",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "SSuperteam UAE@SuperteamAE",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "NNomu@NomuStores",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "SSuperteam Balkan@SuperteamBLKN",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "MMonkeDAO🍌@MonkeDAO",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "PPedr◎@Pedromiranda",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "MMatt 🐡@mattdgn",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "Hhax - ハックス@256hax",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "LLaguna 🌴@lagunacarta",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "IIvan 🧳@ivan_nomadz",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "AA N S E L@ansel_sol",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "DDaniel NOMU 🐡@danieldelophem",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "SSolflare - The Solana Wallet@solflare",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "DdVIN Labs (🍷, ⛓)@dVINLabs",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "SSolflare - The Solana Wallet@solflare",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "SSolana Stable Future@SolStableFuture",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "LLinny@0xLinnyx0",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "SSwissBorg@swissborg",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "LLucid Drakes@LucidDrakes",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "NNomu@NomuStores",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "NNomu@NomuStores",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "SSolana@solana",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "NNomu@NomuStores",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "SSuperteam UAE@SuperteamAE",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "NNomu@NomuStores",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "SSuperteam Balkan@SuperteamBLKN",
+      "type": "header"
+    },
+    {
+      "buttons": 0,
+      "heading": "",
+      "height": 0,
+      "images": 0,
+      "links": 0,
+      "selector": "header.flex.items-center",
+      "text": "MMonkeDAO🍌@MonkeDAO",
+      "type": "header"
+    }
+  ],
+  "siteFiles": {
+    "feeds": [],
+    "hreflang": [],
+    "llms": {
+      "found": true,
+      "text": "# Nomu\n\n> Nomu makes merch for consumer brands. You write a brief, our agents put it in front of several manufacturers at once and come back with quotes to compare; from there we run sourcing, sampling, production, quality control at the factory, warehousing, fulfillment, cross-border and sales tax, with an adaptive storefront on top. There is no minimum order, and the software is free: we earn on the orders we run, not on a licence.\n\nNomu Labs is the entity behind Nomu. The product targets DTC and consumer brands that want a single operator-grade platform instead of stitching Shopify + 3PLs + sourcing agents + customs brokers. Storefronts are agentic-commerce ready (LLM-driven shopping surfaces, programmatic checkout). The team operates on Solana for on-chain commerce drops in addition to standard payment rails.\n\n## Site\n\n- [Homepage](https://nomu.store/): Hero pitch, social proof, \"grow your brand\" overview, sourcing demo, QC demo, cross-border demo, storefront demo, supply chain software, FAQ, closing CTA.\n- [Sitemap](https://nomu.store/sitemap.xml): Machine-readable index of public pages.\n- [Robots policy](https://nomu.store/robots.txt): Crawler directives.\n\n## Product surface (sections on the homepage)\n\n- **Hero** - Brand pitch \"Your merch, in production in 5 minutes.\" with a live falling-chip stack showing the operator graph.\n- **Social proof** — Brands and partners running on Nomu.\n- **Grow your brand** — Adaptive storefront pillar: agentic commerce, conversion-tuned surfaces.\n- **Sourcing demo** — Chat between a brand and the Nomu sourcing agent (Jean-Claude) for factory discovery and sample requests.\n- **QC demo** — Local sample/batch inspection by Nomu Ops (Luke) — no international shipping downtime between rounds.\n- **Cross-border demo** — Customs + duties + multi-region routing handled inside the platform.\n- **Storefront demo** — Adaptive storefront preview (desktop + mobile).\n- **Supply chain software** — Sourcing, manufacturing, warehousing, fulfillment surfaced as one operator console.\n- **FAQ** — Answers to onboarding, pricing model, integrations, payment rails (incl. Solana), white-glove scope.\n- **Closing CTA** — Book a demo entry point.\n\n## Legal\n\n- [Website Terms of Use](https://nomu.store/website-terms-of-use): Terms for using nomu.store.\n- [Privacy Notice](https://nomu.store/privacy-notice): Data collection, processing, and user rights.\n- [Marketplace Terms of Use](https://nomu.store/marketplace-terms-of-use): Terms for Nomu commerce drops.\n- [InvisibleStaking Terms of Use](https://nomu.store/invisible-staking-terms-of-use): Terms governing the Nomu InvisibleStaking program.\n- [OG NFT Terms and Conditions](https://nomu.store/og-nft-terms-and-conditions): Terms for the OG NFT holder program.\n\n## Social\n\n- [Twitter / X](https://twitter.com/NomuStores): Product updates, drop announcements.\n- [LinkedIn](https://www.linkedin.com/company/nomu-labs/): Company updates, hiring.\n- [GitHub](https://github.com/NomuDev): Open-source repo"
+    },
+    "metaRobots": "index, follow",
+    "pwa": {
+      "found": false
+    },
+    "robots": {
+      "allows": [
+        "/"
+      ],
+      "disallows": [
+        "/cms/"
+      ],
+      "found": true,
+      "sitemaps": [
+        "https://nomu.store/sitemap.xml"
+      ],
+      "text": "User-Agent: *\nAllow: /\nDisallow: /cms/\n\nHost: https://nomu.store\nSitemap: https://nomu.store/sitemap.xml\n"
+    },
+    "siteUrls": [
+      "https://nomu.store/",
+      "https://nomu.store/catalogue",
+      "https://nomu.store/about",
+      "https://nomu.store/merch-fulfillment",
+      "https://nomu.store/custom-merch-no-minimum",
+      "https://nomu.store/brand",
+      "https://nomu.store/blog",
+      "https://nomu.store/blog/ai-agents-ecommerce",
+      "https://nomu.store/blog/clothing-manufacturers-europe",
+      "https://nomu.store/blog/usa-clothing-manufacturers",
+      "https://nomu.store/blog/local-clothing-manufacturers",
+      "https://nomu.store/blog/how-to-make-merch-for-youtube",
+      "https://nomu.store/blog/make-your-own-merch",
+      "https://nomu.store/blog/how-to-sell-merch-online",
+      "https://nomu.store/blog/how-to-make-merch",
+      "https://nomu.store/blog/the-invisible-onboarding-why-friction-kills-commerce-apps",
+      "https://nomu.store/blog/automating-the-sku-the-end-to-end-product-creation-engine",
+      "https://nomu.store/blog/how-to-source-clothing-manufacturer-dtc-brand",
+      "https://nomu.store/blog/vibe-coding-why-figma-variables-are-the-new-source-code",
+      "https://nomu.store/blog/how-to-design-consumer-brand-identity",
+      "https://nomu.store/blog/how-to-grow-dtc-brand-without-paid-ads",
+      "https://nomu.store/blog/how-to-architect-real-time-inventory-system",
+      "https://nomu.store/blog/how-to-build-ai-ready-storefront-nextjs",
+      "https://nomu.store/blog/post-dtc-playbook",
+      "https://nomu.store/blog/designing-storefronts-for-agentic-commerce",
+      "https://nomu.store/blog/why-we-built-nomu"
+    ],
+    "sitemaps": [
+      {
+        "count": 26,
+        "index": false,
+        "url": "https://nomu.store/sitemap.xml",
+        "urls": [
+          "https://nomu.store/",
+          "https://nomu.store/catalogue",
+          "https://nomu.store/about",
+          "https://nomu.store/merch-fulfillment",
+          "https://nomu.store/custom-merch-no-minimum",
+          "https://nomu.store/brand",
+          "https://nomu.store/blog",
+          "https://nomu.store/blog/ai-agents-ecommerce",
+          "https://nomu.store/blog/clothing-manufacturers-europe",
+          "https://nomu.store/blog/usa-clothing-manufacturers",
+          "https://nomu.store/blog/local-clothing-manufacturers",
+          "https://nomu.store/blog/how-to-make-merch-for-youtube",
+          "https://nomu.store/blog/make-your-own-merch",
+          "https://nomu.store/blog/how-to-sell-merch-online",
+          "https://nomu.store/blog/how-to-make-merch",
+          "https://nomu.store/blog/the-invisible-onboarding-why-friction-kills-commerce-apps",
+          "https://nomu.store/blog/automating-the-sku-the-end-to-end-product-creation-engine",
+          "https://nomu.store/blog/how-to-source-clothing-manufacturer-dtc-brand",
+          "https://nomu.store/blog/vibe-coding-why-figma-variables-are-the-new-source-code",
+          "https://nomu.store/blog/how-to-design-consumer-brand-identity",
+          "https://nomu.store/blog/how-to-grow-dtc-brand-without-paid-ads",
+          "https://nomu.store/blog/how-to-architect-real-time-inventory-system",
+          "https://nomu.store/blog/how-to-build-ai-ready-storefront-nextjs",
+          "https://nomu.store/blog/post-dtc-playbook",
+          "https://nomu.store/blog/designing-storefronts-for-agentic-commerce",
+          "https://nomu.store/blog/why-we-built-nomu"
+        ]
+      }
+    ]
+  },
+  "skeleton": "<div>\n<div.safari-chrome-anchor>\n<div.site-background>\n  <div.site-background__layer.site-background__base>\n  <div.site-background__layer.site-background__dark>\n  <div.site-background__layer.site-background__accent>\n<div.block.lg:hidden>\n<div.lg:hidden.fixed>\n  <div.flex.items-center>\n    <a> \"Nomu\"\n      <svg>\n        <path>\n        <path>\n        <path>\n        <path>\n      <span.sr-only>\n    <button> \"\"\n      <svg>\n        <path>\n        <path>\n        <path>\n<div.hidden.lg:block>\n  <div.mx-auto.w-full>\n    <nav>\n      <div.flex.items-center>\n        <a> \"Nomu\"\n          <svg>\n          <span.sr-only>\n      <div.flex.items-center>\n        <div.relative.flex>\n          <button#shift-tab-_R_1kubtb_-past-drops> \"Past drops\"\n          <button#shift-tab-_R_1kubtb_-nommunity> \"Nommunity\"\n        <ul>\n          <li>\n      <div.flex.items-center>\n        <a> \"Book a demo\"\n          <span.pointer-events-none.absolute>\n          <span.relative.inline-flex>\n<main>\n  <div#nomu-intro-loader.intro-loader>\n    <div.intro-loader__grid>\n    <div.intro-loader__blob.intro-loader__blob--warm>\n    <div.intro-loader__blob.intro-loader__blob--cool>\n    <div.intro-loader__stage>\n      <svg>\n        <path>\n        <path>\n        <path>\n        <path>\n      <div.intro-loader__status>\n        <span.intro-loader__reel.intro-loader__spinner>\n          <span.intro-loader__reel-veil>\n        <span.intro-loader__reel.intro-loader__phrases>\n          <span.intro-loader__reel-veil>\n  <section#landing-hero>\n    <svg>\n      <defs>\n        <pattern#_R_lav2btb_>\n          <path>\n      <rect>\n    <div.relative.z-20>\n      <div.mx-auto.w-full>\n        <div.pt-[70px].md:pt-[77px]>\n          <a> \"Backed by\"\n          <h1> \"Create your dream merch on autopilot\"\n          <p>\n          <div.mt-[22px].md:mt-[56px]>\n  <section#landing-social-proof-logos>\n    <div.mx-auto.w-full>\n      <div>\n        <div.relative.rounded-mobile-lg>\n          <canvas.pointer-events-none.absolute>\n          <p>\n          <div.relative.flex-1>\n  <section#landing-grow-your-brand>\n    <div.mx-auto.w-full>\n      <div.flex.flex-col>\n        <div>\n          <h2> \"Grow your brand , not your ops.\"\n        <div>\n          <p>\n        <div>\n          <a> \"Book a demo\"\n  <section#landing-bouncy-features>\n    <div.mx-auto.w-full>\n      <section>\n        <div.mb-12.md:mb-16>\n          <div.flex.flex-col>\n        <div.mb-4.grid>\n          <div.group.relative>\n          <div.group.relative>\n        <div.grid.grid-cols-12>\n          <div.group.relative>\n          <div.group.relative>\n      <div.mt-16.md:mt-24>\n        <h3> \"Oh yeah, and all this too.\"\n        <div.md:hidden.relative>\n          <div.relative.w-full>\n          <div.absolute.z-10>\n          <div.absolute.z-10>\n        <div.hidden.md:flex>\n          <div.shrink-0.py-4>\n          <div.shrink-0.py-4>\n          <div.relative.flex-1>\n  <section#breakpoint-2026>\n    <div.pointer-events-none.absolute>\n      <div.absolute.inset-0>\n      <div.absolute.inset-0>\n    <div.relative.mx-auto>\n      <div.absolute.inset-0>\n        <div.absolute.will-change-transform>\n          <div.relative.aspect-[3/4]>\n        <div.absolute.will-change-transform>\n          <div.relative.aspect-[3/4]>\n        <div.absolute.will-change-transform>\n          <div.relative.aspect-[3/4]>\n        <div.absolute.will-change-transform>\n          <div.relative.aspect-[3/4]>\n        <div.absolute.will-change-transform>\n          <div.relative.aspect-[3/4]>\n        <div.absolute.will-change-transform>\n          <div.relative.aspect-[3/4]>\n        <div.absolute.will-change-transform>\n          <div.relative.aspect-[3/4]>\n      <div.relative.z-10>\n        <div.w-full>\n          <h2> \"Wear your own merch at Breakpoint 2026\"\n        <div.w-full>\n          <p>\n        <div.mt-7.w-full>\n          <form>\n      <img> alt=\"Miniature model of London with Breakpoin\"\n  <section#landing-morph-forward>\n    <div.pointer-events-none.absolute>\n    <svg>\n      <defs>\n        <lineargradient#morph-grad-0>\n          <stop>\n          <stop>\n        <lineargradient#morph-grad-1>\n          <stop>\n          <stop>\n        <lineargradient#morph-grad-2>\n          <stop>\n          <stop>\n        <lineargradient#morph-grad-3>\n          <stop>\n          <stop>\n      <path>\n      <path>\n      <path>\n      <path>\n  <section#landing-supply-chain-software>\n    <div.mx-auto.w-full>\n      <div.md:px-8>\n        <div>\n          <div.flex.justify-center>\n        <h2> \"Get your full commerce ops, out-of-the-box.\"\n          <span.inline-block>\n          <br>\n          <span.inline-block.text-primary>\n        <div>\n          <p>\n        <ul>\n          <li>\n          <li>\n          <li>\n      <div.mt-[162px].md:mt-[181px]>\n        <div.flex.flex-col>\n          <div.relative.isolate>\n      <div.mt-2.md:mt-6>\n        <div>\n          <div.relative.inline-block>\n        <h3> \"Talk to us now to get your merch on a BP26 booth.\"\n          <span.inline-block.align-middle>\n      <div.mt-[45px].md:mt-[56px]>\n        <a> \"Book a demo\"\n          <span.pointer-events-none.absolute>\n          <span.relative.inline-flex>\n      <div.mt-[115px].md:mt-32>\n        <div>\n          <h3> \"THE STORY SO FAR\"\n        <div.mt-8.md:mt-8>\n          <div.text-center>\n          <div.text-center>\n          <div.text-center>\n    <div.mt-[102px].md:mt-28>\n      <div>\n        <div>\n          <div.relative.w-full>\n          <div.relative.w-full>\n  <section#landing-morph-reverse>\n    <svg>\n      <defs>\n        <lineargradient#morph-rev-grad-0>\n          <stop>\n          <stop>\n        <lineargradient#morph-rev-grad-1>\n          <stop>\n          <stop>\n        <lineargradient#morph-rev-grad-2>\n          <stop>\n          <stop>\n        <lineargradient#morph-rev-grad-3>\n          <stop>\n          <stop>\n      <path>\n      <path>\n      <path>\n      <path>\n  <section#landing-faq>\n    <div.mx-auto.w-full>\n      <div.md:px-8>\n        <h2> \"You got questions? We got answers.\"\n          <span.inline-block>\n          <br>\n          <span.inline-block.text-primary>\n        <div>\n          <div.mt-8.md:mt-12>\n  <section#landing-closing-cta>\n    <div.mx-auto.w-full>\n      <div.grid.grid-cols-1>\n        <h2> \"You're the creative director.\"\n          <span.inline-block>\n          <br>\n          <span.relative.inline-block>\n        <div>\n          <h2> \"We're everything else.\"\n          <ul>\n      <div.mt-16.md:mt-24>\n        <p>\n        <ul>\n          <li>\n          <li>\n  <div.hidden.md:block>\n    <div.mx-auto.w-full>\n      <div.absolute.z-0>\n        <a> \"Want to see Nomu in action? Request a de\"\n          <span.whitespace-nowrap.inline-flex>\n          <span.absolute.bottom-0>\n      <div.absolute.top-0>\n        <div.absolute.right-0>\n          <div.relative.h-full>\n<footer>\n  <div.mx-auto.w-full>\n    <div.bg-primary.flex>\n      <div.mb-8.md:mb-16>\n        <a> \"\"\n          <svg>\n      <div.flex-1.xl:max-w-4xl>\n        <form>\n          <div.bg-highlight-1.rounded-mobile-lg>\n          <div.mt-6.md:mt-8>\n        <div.grid.grid-cols-2>\n          <div.flex.flex-col>\n          <div.flex.flex-col>\n          <div.flex.flex-col>\n          <div.flex.flex-col>\n    <div.flex.items-center>\n      <p>\n<section>\n<next-route-announcer>",
+  "stats": {
+    "sampled": 1500,
+    "totalElements": 3996
+  },
+  "tech": {
+    "frameworkHints": [
+      "Next.js"
+    ],
+    "generator": "",
+    "scripts": [
+      "https://nomu.store/_next/static/chunks/2p7di_2m7gq_u.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/27kzrk0r117ra.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/3p2iz95yn_dp5.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/turbopack-2g1rz808c1tqb.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/2c2g47w8-gn95.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/0lw0zxb_vj2he.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/2c817x945z64_.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/0z5df8jyw22jm.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/1gyhl1o8ig6u4.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/0v--_dgawi9u9.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/2-g2m_gllley4.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/35hv_opmlc-n8.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/3y2531u2z0g4u.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/2sjobyezpn_14.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/27t4be57kcl03.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/0cz1d0mv5g_q7.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/1mceghnztrjoq.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/1rgqc5r6vsf7t.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/34899a58a97e613f/script.js",
+      "https://nomu.store/_next/static/chunks/2jqnpc62os4ui.js?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h"
+    ],
+    "styleSheets": [
+      "https://nomu.store/_next/static/chunks/39novnyl_6kqt.css?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h",
+      "https://nomu.store/_next/static/chunks/29gndy21_5hot.css?dpl=dpl_8MGejsGBpeqZKPtsnX9zviNcit9h"
+    ]
+  },
+  "typography": {
+    "families": [
+      {
+        "count": 1374,
+        "value": "Inter"
+      },
+      {
+        "count": 95,
+        "value": "ui-sans-serif"
+      },
+      {
+        "count": 31,
+        "value": "ui-monospace"
+      }
+    ],
+    "googleFonts": [],
+    "h1": "60px",
+    "h2": "48px",
+    "h3": "30px",
+    "sizes": [
+      {
+        "count": 1177,
+        "value": "16px"
+      },
+      {
+        "count": 122,
+        "value": "14px"
+      },
+      {
+        "count": 65,
+        "value": "12px"
+      },
+      {
+        "count": 42,
+        "value": "60px"
+      },
+      {
+        "count": 34,
+        "value": "48px"
+      },
+      {
+        "count": 23,
+        "value": "10px"
+      },
+      {
+        "count": 19,
+        "value": "9px"
+      },
+      {
+        "count": 13,
+        "value": "11px"
+      },
+      {
+        "count": 5,
+        "value": "30px"
+      }
+    ],
+    "weights": [
+      {
+        "count": 248,
+        "value": "500"
+      },
+      {
+        "count": 30,
+        "value": "600"
+      }
+    ]
+  }
+}

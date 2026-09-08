@@ -1,26 +1,299 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  --color-cream: #fff8f1;
+  --color-parchment: #fbf0e2;
+  --color-ink: #1b140d;
+  --color-muted: #6f6254;
+  --color-line: #eadbc7;
+  --color-ember: #e8501a;
+  --color-ember-deep: #bc3d0f;
+  --color-night: #171209;
+  --color-night-soft: #221a10;
+  --color-leaf: #1f8a4c;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* Pill-highlight word inside giant headlines */
+.hl-pill {
+  display: inline-block;
+  border-radius: 9999px;
+  background: var(--color-ink);
+  color: var(--color-cream);
+  padding: 0.02em 0.35em 0.06em;
+  white-space: nowrap;
+}
+
+/* ---- Motion system (original keyframes, same vocabulary as reference) ---- */
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes blob-drift-warm {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(60px, 40px);
+  }
+}
+
+@keyframes blob-drift-cool {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-50px, -30px);
+  }
+}
+
+@keyframes marquee-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes cta-glow {
+  0%,
+  100% {
+    box-shadow: rgba(27, 20, 13, 0.35) 0 8px 20px -8px;
+  }
+  50% {
+    box-shadow:
+      rgba(232, 80, 26, 0.45) 0 0 22px 2px,
+      rgba(27, 20, 13, 0.35) 0 8px 20px -8px;
+  }
+}
+
+@keyframes shimmer-x {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Entrance: hero plays on load with stagger via inline delay */
+.anim-hero {
+  opacity: 0;
+  animation: hero-fade-up 0.7s cubic-bezier(0, 0.2, 0.2, 1) forwards;
+}
+
+/* Scroll reveal: .in added by <Reveal/> */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s cubic-bezier(0, 0.2, 0.2, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal].in {
+  opacity: 1;
+  transform: none;
+}
+
+.anim-blob-warm {
+  animation: blob-drift-warm 8s ease-in-out infinite;
+}
+.anim-blob-cool {
+  animation: blob-drift-cool 9s ease-in-out infinite;
+}
+.anim-float {
+  animation: float-soft 4.2s ease-in-out infinite;
+}
+.anim-cta-glow {
+  animation: cta-glow 3.8s ease-in-out infinite;
+}
+.anim-cta-glow:hover {
+  animation-play-state: paused;
+}
+
+.marquee-track {
+  animation: marquee-x 28s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* Animated accordion answer */
+.acc-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+.acc-panel.open {
+  grid-template-rows: 1fr;
+}
+.acc-inner {
+  overflow: hidden;
+}
+
+/* Card hover lift */
+.lift {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+.lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -16px rgba(27, 20, 13, 0.3);
+}
+
+/* Subtle blueprint grid backdrop for the hero */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(27 20 13 / 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(27 20 13 / 0.055) 1px, transparent 1px);
+  background-size: 54px 54px;
+  mask-image: radial-gradient(ellipse 95% 85% at 50% 15%, black 25%, transparent 78%);
+}
+
+/* Scattered floating chips */
+@keyframes chip-float {
+  0%,
+  100% {
+    transform: rotate(var(--chip-rot, 0deg)) translateY(0);
+  }
+  50% {
+    transform: rotate(var(--chip-rot, 0deg)) translateY(-10px);
+  }
+}
+.anim-chip {
+  animation: chip-float 4.5s ease-in-out infinite;
+  animation-delay: var(--chip-delay, 0ms);
+  will-change: transform;
+}
+
+/* Hand-drawn ellipse highlight, draws itself when revealed */
+.ellipse-path {
+  stroke-dasharray: 700;
+  stroke-dashoffset: 700;
+}
+.in .ellipse-path {
+  animation: draw-ellipse 0.9s ease-out 0.25s forwards;
+}
+@keyframes draw-ellipse {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Sparkle twinkle on the headline pill */
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+.anim-twinkle {
+  display: inline-block;
+  animation: twinkle 2.4s ease-in-out infinite;
+}
+
+::selection {
+  background: var(--color-ember);
+  color: #fff;
+}
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--color-ember);
+  outline-offset: 2px;
+}
+
+.select-trigger:focus-visible,
+.select-trigger[data-state="open"] {
+  outline: none;
+  border-color: var(--color-ember);
+  box-shadow: 0 0 0 3px rgb(232 80 26 / 0.18);
+}
+
+@keyframes select-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.select-content[data-state="open"] {
+  animation: select-in 0.15s ease;
+}
+
+.field-check {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+  accent-color: var(--color-ember);
+  cursor: pointer;
+}
+.field-check:focus-visible {
+  outline: 2px solid var(--color-ember);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

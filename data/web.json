@@ -1,0 +1,123 @@
+{
+  "platform": "web",
+  "categories": [
+    {
+      "id": "language",
+      "label": "Language",
+      "help": "The language your project code is written in.",
+      "options": [
+        { "id": "typescript", "label": "TypeScript", "hint": "Recommended", "commands": [], "notes": [] },
+        { "id": "javascript", "label": "JavaScript", "hint": "Simplest", "commands": [], "notes": [] }
+      ]
+    },
+    {
+      "id": "framework",
+      "label": "Framework",
+      "help": "Your site's foundation.",
+      "options": [
+        {
+          "id": "nextjs",
+          "label": "Next.js",
+          "hint": "All-in-one",
+          "commands": ["__NEXT_CREATE__", "cd my-app"],
+          "notes": ["Creates a Next.js site in my-app (installs everything)", "Enters my-app"]
+        },
+        {
+          "id": "react-vite",
+          "label": "React (Vite)",
+          "hint": "Fast",
+          "commands": ["__VITE_CREATE__", "cd my-app", "__INSTALL__"],
+          "notes": ["Creates a React site in my-app", "Enters my-app", "Installs dependencies"]
+        },
+        {
+          "id": "vue",
+          "label": "Vue",
+          "hint": "Easy start",
+          "commands": ["__PM_CREATE__ vue@latest my-app", "cd my-app", "__INSTALL__"],
+          "notes": ["Starts the Vue setup", "Enters my-app", "Installs dependencies"]
+        },
+        {
+          "id": "nuxt",
+          "label": "Nuxt",
+          "hint": "Vue + pages",
+          "commands": ["__PMX__ nuxi@latest init my-app", "cd my-app", "__INSTALL__"],
+          "notes": ["Creates a Nuxt site in my-app", "Enters my-app", "Installs dependencies"]
+        },
+        {
+          "id": "sveltekit",
+          "label": "Svelte / SvelteKit",
+          "hint": "Less code",
+          "commands": ["__PM_CREATE__ svelte@latest my-app", "cd my-app", "__INSTALL__"],
+          "notes": ["Starts the Svelte setup", "Enters my-app", "Installs dependencies"]
+        },
+        {
+          "id": "angular",
+          "label": "Angular",
+          "hint": "Complete",
+          "commands": ["__PMX__ @angular/cli@latest new my-app", "cd my-app", "__INSTALL__"],
+          "notes": ["Creates an Angular site called my-app", "Enters my-app", "Installs dependencies"]
+        },
+        {
+          "id": "solid",
+          "label": "SolidJS",
+          "hint": "Very fast",
+          "commands": ["__VITE_SOLID_CREATE__", "cd my-app", "__INSTALL__"],
+          "notes": ["Creates a SolidJS site in my-app", "Enters my-app", "Installs dependencies"]
+        }
+      ]
+    },
+    {
+      "id": "styling",
+      "label": "Styling",
+      "help": "How your site looks.",
+      "options": [
+        {
+          "id": "tailwind",
+          "label": "Tailwind CSS",
+          "hint": "Recommended",
+          "commands": ["__TAILWIND__"],
+          "notes": ["Adds Tailwind"]
+        },
+        {
+          "id": "css-modules",
+          "label": "CSS Modules",
+          "hint": "Per-file CSS",
+          "commands": [],
+          "notes": ["Built in — nothing to install."]
+        },
+        {
+          "id": "styled-components",
+          "label": "styled-components",
+          "hint": "CSS in JS",
+          "commands": ["__ADD__ styled-components"],
+          "notes": ["Adds CSS-in-components"]
+        },
+        {
+          "id": "scss",
+          "label": "SCSS",
+          "hint": "CSS extras",
+          "commands": ["__ADD__ sass"],
+          "notes": ["Adds Sass (.scss files)"]
+        },
+        {
+          "id": "plain-css",
+          "label": "Plain CSS",
+          "hint": "No tools",
+          "commands": [],
+          "notes": ["Built in — nothing to install."]
+        }
+      ]
+    },
+    {
+      "id": "packageManager",
+      "label": "Package manager",
+      "help": "Pick the one you know.",
+      "options": [
+        { "id": "npm", "label": "npm", "hint": "With Node", "commands": [], "notes": [] },
+        { "id": "yarn", "label": "yarn", "hint": "Popular", "commands": [], "notes": [] },
+        { "id": "pnpm", "label": "pnpm", "hint": "Fast", "commands": [], "notes": [] },
+        { "id": "bun", "label": "bun", "hint": "Fastest", "commands": [], "notes": [] }
+      ]
+    }
+  ]
+}
