@@ -4,9 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import Reveal from "./Reveal";
 
-// TODO: replace with your inbox — FormSubmit sends a one-time activation
-// email there, then every Notify-me signup lands in that inbox. Free, no account.
-const NOTIFY_EMAIL = "you@example.com";
+// Notify-me signups go to this inbox via FormSubmit (free, no account).
+// First signup triggers a one-time activation email — click it or signups stall.
+const NOTIFY_EMAIL = "anoopkr6300@gmail.com";
 
 type Status = "idle" | "sending" | "done" | "error";
 
@@ -97,9 +97,9 @@ export default function Footer() {
                 <div>
                   <p className="font-semibold uppercase tracking-widest text-white/70">Platforms</p>
                   <ul className="mt-2 space-y-1.5">
-                    <li><Link href="#build" className="transition-opacity hover:opacity-75 hover:underline">Web</Link></li>
-                    <li><Link href="#build" className="transition-opacity hover:opacity-75 hover:underline">Mobile</Link></li>
-                    <li><Link href="#build" className="transition-opacity hover:opacity-75 hover:underline">Desktop</Link></li>
+                    <li><Link href="#build" className="transition-opacity hover:opacity-75 hover:underline">Web · live</Link></li>
+                    <li><Link href="#build" className="transition-opacity hover:opacity-75 hover:underline">Mobile · live</Link></li>
+                    <li><Link href="#build" className="transition-opacity hover:opacity-75 hover:underline">Desktop · live</Link></li>
                   </ul>
                 </div>
                 <div>

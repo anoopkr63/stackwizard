@@ -907,7 +907,7 @@ export function assemble(selections: WizardSelections): BuildStep[] {
     push(
       `${nextNo} · Save your keys`,
       `touch ${envFile}`,
-      "Creates your env file. Never commit it."
+      `Creates your env file${who}. Never commit it.`
     );
     // The scaffolds' default gitignores don't all cover our env filename —
     // back the "never commit it" promise with a real ignore line. Idempotent:

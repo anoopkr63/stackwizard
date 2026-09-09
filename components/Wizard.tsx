@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import addons from "@/data/addons.json";
 import { assemble, buildScript, catalogFor, defaultSelections, isOptionVisible, PRESETS, sanitizeAppName } from "@/lib/assemble";
-import { decodeSelections, encodeSelections } from "@/lib/share";
+import { decodeRoute, decodeSelections, encodeRoute } from "@/lib/share";
 import type { PlatformId, WizardSelections } from "@/lib/types";
 import { SectionEyebrow, SectionSub, SectionTitle } from "./Section";
 import Reveal from "./Reveal";
@@ -41,13 +41,15 @@ export default function Wizard() {
   const [copied, setCopied] = useState<"commands" | "link" | null>(null);
   const [copiedGroup, setCopiedGroup] = useState<number | null>(null);
 
-  // Load shared selections once from ?s= — mount-only client init (window
-  // doesn't exist during SSR, so this can't move into a state initializer
-  // without a hydration mismatch).
+  // Load shared selections once — short route /s/<combo> first, legacy ?s=
+  // fallback. Mount-only client init (window doesn't exist during SSR, so this
+  // can't move into a state initializer without a hydration mismatch).
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const decoded = decodeSelections(params.get("s"));
+    const m = window.location.pathname.match(/^\/s\/([^/]+)\/?$/);
+    const decoded = m
+      ? decodeRoute(m[1])
+      : decodeSelections(new URLSearchParams(window.location.search).get("s"));
     if (decoded) {
       setSel({ ...defaultSelections(), ...decoded });
     }
@@ -70,31 +72,39 @@ export default function Wizard() {
 
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
-    return `${window.location.origin}${window.location.pathname}?s=${encodeSelections(sel)}`;
+    const r = encodeRoute(sel);
+    const path = r ? `/s/${r}` : "/";
+    return `${window.location.origin}${path}`;
   }, [sel]);
 
-  // Keep the address bar in sync so the link is always shareable
-  useEffect(() => {
-    const url = `${window.location.pathname}?s=${encodeSelections(sel)}`;
-    window.history.replaceState(null, "", url);
-  }, [sel]);
+  // Share links are built on demand (copy-link button) — picking answers
+  // keeps the address bar clean. If the page was opened on a shared link,
+  // the first change drops it back to "/" so the URL never lies.
+  function touch() {
+    if (typeof window !== "undefined" && window.location.pathname !== "/") {
+      window.history.replaceState(null, "", "/");
+    }
+  }
 
   const set = <K extends keyof WizardSelections>(key: K, value: WizardSelections[K]) => {
     setSel((prev) => ({ ...prev, [key]: value }));
     setCopied(null);
     setCopiedGroup(null);
+    touch();
   };
 
   function resetAll() {
     setSel(defaultSelections());
     setCopied(null);
     setCopiedGroup(null);
+    touch();
   }
 
   function applyPreset(selections: WizardSelections) {
     setSel(selections);
     setCopied(null);
     setCopiedGroup(null);
+    touch();
   }
 
   const ormHidden = ["", "none", "supabase", "firebase"].includes(sel.addons.database || "none");
@@ -105,6 +115,7 @@ export default function Wizard() {
   const appRaw = (sel.appName ?? "").trim();
 
   function switchPlatform(p: PlatformId) {
+    touch();
     setSel((prev) => {
       const next: WizardSelections = {
         ...prev,
@@ -373,7 +384,7 @@ export default function Wizard() {
                       <input
                         type="checkbox"
                         checked={!!sel.toggles[t.id]}
-                        onChange={(e) => setSel((p) => ({ ...p, toggles: { ...p.toggles, [t.id]: e.target.checked } }))}
+                        onChange={(e) => { touch(); setSel((p) => ({ ...p, toggles: { ...p.toggles, [t.id]: e.target.checked } })); }}
                         className="field-check"
                       />
                       <span>
@@ -405,15 +416,16 @@ export default function Wizard() {
                             id={`a-${g.id}`}
                             label={g.label}
                             value={picked}
-                            onChange={(ids) =>
+                            onChange={(ids) => {
+                              touch();
                               setSel((p) => ({
                                 ...p,
                                 addons: {
                                   ...p.addons,
                                   [g.id]: ids.length ? ids.join(",") : "",
                                 },
-                              }))
-                            }
+                              }));
+                            }}
                             options={g
                               .options!.filter(
                                 (o) => o.id !== "none" && isOptionVisible(o, sel)
@@ -430,7 +442,8 @@ export default function Wizard() {
                           id={`a-${g.id}`}
                           label={g.label}
                           value={sel.addons[g.id] || ""}
-                          onChange={(v) =>
+                          onChange={(v) => {
+                            touch();
                             setSel((p) => {
                               const next: WizardSelections = {
                                 ...p,
@@ -459,8 +472,8 @@ export default function Wizard() {
                                 }
                               }
                               return next;
-                            })
-                          }
+                            });
+                          }}
                           options={g.options!.filter((o) => isOptionVisible(o, sel))}
                           placeholder={g.help}
                         />
