@@ -95,15 +95,16 @@ body {
   }
 }
 
-@keyframes cta-glow {
+/* CTA glow pulses via an opacity-only layer (compositor-friendly) instead of
+   animating box-shadow, which repaints every frame and can make nearby
+   motion (like the marquee) stutter. Same look, no per-frame paint. */
+@keyframes cta-glow-opacity {
   0%,
   100% {
-    box-shadow: rgba(27, 20, 13, 0.35) 0 8px 20px -8px;
+    opacity: 0;
   }
   50% {
-    box-shadow:
-      rgba(232, 80, 26, 0.45) 0 0 22px 2px,
-      rgba(27, 20, 13, 0.35) 0 8px 20px -8px;
+    opacity: 1;
   }
 }
 
@@ -138,25 +139,268 @@ body {
 
 .anim-blob-warm {
   animation: blob-drift-warm 8s ease-in-out infinite;
+  will-change: transform;
 }
 .anim-blob-cool {
   animation: blob-drift-cool 9s ease-in-out infinite;
+  will-change: transform;
 }
 .anim-float {
   animation: float-soft 4.2s ease-in-out infinite;
 }
 .anim-cta-glow {
-  animation: cta-glow 3.8s ease-in-out infinite;
+  position: relative;
+  isolation: isolate;
+  box-shadow: rgba(27, 20, 13, 0.35) 0 8px 20px -8px;
 }
-.anim-cta-glow:hover {
+.anim-cta-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    rgba(232, 80, 26, 0.45) 0 0 22px 2px,
+    rgba(27, 20, 13, 0.35) 0 8px 20px -8px;
+  opacity: 0;
+  z-index: -1;
+  animation: cta-glow-opacity 3.8s ease-in-out infinite;
+}
+.anim-cta-glow:hover::after {
   animation-play-state: paused;
 }
 
 .marquee-track {
-  animation: marquee-x 28s linear infinite;
+  --gap: 2rem;
+  /* Track holds 4 sets and travels -50% (= 2 sets) per cycle, so the duration
+     is doubled to keep the original px/sec speed (was 1 set per 28s).
+     No hover-pause: the strip must never look stuck. */
+  animation: marquee-x 56s linear infinite;
 }
-.marquee:hover .marquee-track {
-  animation-play-state: paused;
+
+/* ---- Exact Nomu reference keyframes (from reference/new.json §motion) ----
+   Design tokens above are untouched; these only add motion vocabulary. */
+@keyframes shimmer {
+  100% {
+    transform: translate(100%);
+  }
+}
+@keyframes pill-edge-glow {
+  0%,
+  100% {
+    box-shadow: rgba(15, 21, 29, 0.4) 0 8px 20px -8px;
+  }
+  50% {
+    box-shadow:
+      rgba(255, 255, 255, 0.12) 0 0 20px 2px,
+      rgba(15, 21, 29, 0.4) 0 8px 20px -8px;
+  }
+}
+@keyframes social-proof-gradient-float {
+  0% {
+    background-image: linear-gradient(
+      rgb(255, 249, 246) 0,
+      rgb(255, 249, 246) 40px,
+      rgb(255, 141, 105) calc(100% - 190px),
+      rgb(255, 141, 105) 100%
+    );
+  }
+  25% {
+    background-image: linear-gradient(
+      rgb(255, 249, 246) 0,
+      rgb(255, 249, 246) 55px,
+      rgb(255, 141, 105) calc(100% - 215px),
+      rgb(255, 141, 105) 100%
+    );
+  }
+  50% {
+    background-image: linear-gradient(
+      rgb(255, 249, 246) 0,
+      rgb(255, 249, 246) 70px,
+      rgb(255, 141, 105) calc(100% - 175px),
+      rgb(255, 141, 105) 100%
+    );
+  }
+  75% {
+    background-image: linear-gradient(
+      rgb(255, 249, 246) 0,
+      rgb(255, 249, 246) 55px,
+      rgb(255, 141, 105) calc(100% - 200px),
+      rgb(255, 141, 105) 100%
+    );
+  }
+  100% {
+    background-image: linear-gradient(
+      rgb(255, 249, 246) 0,
+      rgb(255, 249, 246) 40px,
+      rgb(255, 141, 105) calc(100% - 190px),
+      rgb(255, 141, 105) 100%
+    );
+  }
+}
+@keyframes illus-float {
+  0%,
+  100% {
+    transform: translate(170px) rotate(-2deg) translateY(0);
+  }
+  50% {
+    transform: translate(170px) rotate(-2deg) translateY(-12px);
+  }
+}
+@keyframes intro-logo-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes intro-reel-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes intro-reel {
+  100% {
+    transform: translateY(-100%);
+  }
+}
+@keyframes nomu-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+@keyframes ken-burns {
+  0%,
+  100% {
+    transform: scale(1) translate(0);
+  }
+  50% {
+    transform: scale(1.06) translateY(-1%);
+  }
+}
+@keyframes accordion-down {
+  0% {
+    height: 0;
+  }
+  100% {
+    height: var(--radix-accordion-content-height);
+  }
+}
+@keyframes accordion-up {
+  0% {
+    height: var(--radix-accordion-content-height);
+  }
+  100% {
+    height: 0;
+  }
+}
+@keyframes marquee-exact {
+  0% {
+    transform: translate(0);
+  }
+  100% {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+@keyframes marquee-vertical {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
+}
+@keyframes swipe-out-left {
+  0% {
+    transform: var(--y) translateX(var(--swipe-amount-x));
+    opacity: 1;
+  }
+  100% {
+    transform: var(--y) translateX(calc(var(--swipe-amount-x) - 100%));
+    opacity: 0;
+  }
+}
+@keyframes swp-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+@keyframes swp-beam {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.6);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(1);
+  }
+}
+
+/* Utilities built on the exact reference keyframes */
+.anim-illus-float {
+  animation: illus-float 4.2s ease-in-out infinite;
+  will-change: transform;
+}
+.anim-ken-burns {
+  animation: ken-burns 9s ease-in-out infinite;
+  will-change: transform;
+}
+.anim-nomu-shimmer {
+  background-size: 200% 100%;
+  animation: nomu-shimmer 2.4s linear infinite;
+}
+.anim-pill-glow {
+  animation: pill-edge-glow 3.8s ease-in-out infinite;
+}
+.anim-social-proof {
+  animation: social-proof-gradient-float 9s ease-in-out infinite;
+}
+.anim-marquee-exact {
+  animation: marquee-exact 28s linear infinite;
+}
+.anim-marquee-vertical {
+  --gap: 1rem;
+  animation: marquee-vertical 18s linear infinite;
+}
+.anim-twinkle-exact {
+  display: inline-block;
+  animation: swp-twinkle 4.2s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+.anim-spin-slow {
+  animation: spin 9s linear infinite;
+}
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Animated accordion answer */

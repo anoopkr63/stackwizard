@@ -1,11 +1,15 @@
 import Link from "next/link";
 import web from "@/data/web.json";
+import mobile from "@/data/mobile.json";
 import ChipScatter from "./ChipScatter";
+import TwinkleField from "./TwinkleField";
 
 const TERMINAL_PREVIEW = ["npm create next-app@latest my-app", "cd my-app", "npm install", "npm run dev"];
 
-const FRAMEWORKS =
-  web.categories.find((c) => c.id === "framework")?.options.map((o) => o.label) ?? [];
+const FRAMEWORKS = [
+  ...(web.categories.find((c) => c.id === "framework")?.options.map((o) => o.label) ?? []),
+  ...(mobile.categories.find((c) => c.id === "framework")?.options.map((o) => o.label) ?? []),
+];
 
 export default function Hero() {
   return (
@@ -18,13 +22,15 @@ export default function Hero() {
 
       {/* scattered chips (desktop only — they need room to breathe) */}
       <ChipScatter />
+      {/* twinkling stars — exact swp-twinkle reference timing */}
+      <TwinkleField />
 
       <div className="relative mx-auto max-w-6xl px-4 pb-14 pt-14 text-center sm:px-6 lg:pt-24">
         <p
           className="anim-hero inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold uppercase tracking-widest text-muted"
           style={{ animationDelay: "0ms" }}
         >
-          Free tool for developers · Web first
+          Free tool for developers · Web + Mobile
         </p>
         <h1
           className="anim-hero display mx-auto mt-6 max-w-4xl text-[clamp(2.6rem,7vw,4.75rem)] font-bold leading-[1.04]"
@@ -84,15 +90,22 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* framework marquee */}
+      {/* framework marquee — 4 identical sets so the -50% loop always has
+          content under the viewport (1 set alone is narrower than wide screens) */}
       <div className="marquee overflow-hidden border-t border-line bg-parchment py-3" aria-label="Supported frameworks">
-        <div className="marquee-track flex w-max items-center gap-8 pr-8">
-          {[...FRAMEWORKS, ...FRAMEWORKS].map((f, i) => (
-            <span key={`${f}-${i}`} className="display flex items-center gap-8 text-sm font-semibold text-muted">
-              {f}
-              <span aria-hidden="true" className="text-ember">✦</span>
-            </span>
-          ))}
+        <div className="marquee-track flex w-max items-center gap-8 pr-8 will-change-transform">
+          {Array.from({ length: 4 })
+            .flatMap(() => FRAMEWORKS)
+            .map((f, i) => (
+              <span
+                key={`${f}-${i}`}
+                aria-hidden={i >= FRAMEWORKS.length || undefined}
+                className="display flex items-center gap-8 text-sm font-semibold text-muted"
+              >
+                {f}
+                <span aria-hidden="true" className="text-ember">✦</span>
+              </span>
+            ))}
         </div>
       </div>
     </section>

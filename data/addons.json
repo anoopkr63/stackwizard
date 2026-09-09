@@ -18,6 +18,15 @@
           "help": "Blocks messy commits.",
           "commands": ["__ADD_DEV__ husky", "__PMX__ husky init"],
           "notes": ["Adds Husky", "Checks code before every commit"]
+        },
+        {
+          "id": "structure",
+          "label": "Production folders",
+          "help": "Organised 2026 layout.",
+          "platforms": ["web", "mobile"],
+          "frameworks": ["nextjs", "react-vite", "expo", "react-native", "ionic"],
+          "commands": ["__STRUCTURE__"],
+          "notes": []
         }
       ]
     },
@@ -154,13 +163,14 @@
           "id": "typeorm",
           "label": "TypeORM",
           "hint": "Full",
-          "commands": ["__ADD__ typeorm reflect-metadata", "__ADD__ pg"],
-          "notes": ["Adds TypeORM", "Adds the Postgres driver"]
+          "commands": ["__ADD__ typeorm reflect-metadata", "__DB_DRIVER__"],
+          "notes": ["Adds TypeORM", "Adds your database driver."]
         },
         {
           "id": "mongoose",
           "label": "Mongoose",
           "hint": "MongoDB only",
+          "showWhen": { "database": ["mongodb"] },
           "commands": ["__ADD__ mongoose"],
           "notes": ["MongoDB helper. Use with MongoDB."]
         }
@@ -176,6 +186,7 @@
           "id": "nextauth",
           "label": "Auth.js / NextAuth",
           "hint": "For Next.js",
+          "platforms": ["web"],
           "commands": ["__ADD__ next-auth"],
           "notes": ["Adds Auth.js. Best with Next.js."]
         },
@@ -184,19 +195,24 @@
           "label": "Clerk",
           "hint": "Easiest",
           "commands": ["__ADD__ @clerk/nextjs"],
-          "notes": ["Adds Clerk. Keys go in .env."]
+          "notes": ["Adds Clerk. Keys go in .env."],
+          "commandsMobile": ["__ADD__ @clerk/clerk-expo"],
+          "notesMobile": ["Adds Clerk for Expo. Keys go in .env."]
         },
         {
           "id": "auth0",
           "label": "Auth0",
           "hint": "Enterprise",
           "commands": ["__ADD__ @auth0/nextjs-auth0"],
-          "notes": ["Adds Auth0. Keys go in .env."]
+          "notes": ["Adds Auth0. Keys go in .env."],
+          "commandsMobile": ["__ADD__ react-native-auth0"],
+          "notesMobile": ["Adds Auth0 for React Native. Keys go in .env."]
         },
         {
           "id": "firebase-auth",
           "label": "Firebase Auth",
           "hint": "For Firebase",
+          "hideWhen": { "database": ["supabase"] },
           "commands": ["__ADD__ firebase"],
           "notes": ["Adds Firebase login."]
         },
@@ -204,6 +220,7 @@
           "id": "supabase-auth",
           "label": "Supabase Auth",
           "hint": "For Supabase",
+          "hideWhen": { "database": ["firebase"] },
           "commands": ["__ADD__ @supabase/ssr"],
           "notes": ["Adds Supabase login."]
         }
@@ -220,12 +237,15 @@
           "label": "Stripe",
           "hint": "Popular",
           "commands": ["__ADD__ stripe @stripe/stripe-js"],
-          "notes": ["Adds Stripe. Test keys go in .env."]
+          "notes": ["Adds Stripe. Test keys go in .env."],
+          "commandsMobile": ["__ADD__ @stripe/stripe-react-native"],
+          "notesMobile": ["Adds Stripe for React Native. Test keys go in .env."]
         },
         {
           "id": "paypal",
           "label": "PayPal",
           "hint": "Trusted",
+          "platforms": ["web"],
           "commands": ["__ADD__ @paypal/checkout-server-sdk @paypal/paypal-js"],
           "notes": ["Adds PayPal. Sandbox keys needed."]
         },
@@ -233,6 +253,7 @@
           "id": "paddle",
           "label": "Paddle",
           "hint": "Tax handled",
+          "platforms": ["web"],
           "commands": ["__ADD__ @paddle/paddle-js"],
           "notes": ["Adds Paddle (handles sales tax)."]
         },
@@ -240,6 +261,7 @@
           "id": "lemonsqueezy",
           "label": "Lemon Squeezy",
           "hint": "Simplest",
+          "platforms": ["web"],
           "commands": [],
           "notes": ["No code needed — create a store."]
         },
@@ -248,7 +270,17 @@
           "label": "Razorpay",
           "hint": "India",
           "commands": ["__ADD__ razorpay"],
-          "notes": ["Adds Razorpay. Test keys needed."]
+          "notes": ["Adds Razorpay. Test keys needed."],
+          "commandsMobile": ["__ADD__ react-native-razorpay"],
+          "notesMobile": ["Adds Razorpay for React Native. Test keys needed."]
+        },
+        {
+          "id": "revenuecat",
+          "label": "RevenueCat",
+          "hint": "In-app purchases",
+          "platforms": ["mobile"],
+          "commands": ["__ADD__ react-native-purchases"],
+          "notes": ["Adds RevenueCat for App Store / Play billing."]
         }
       ]
     },
@@ -276,6 +308,7 @@
           "id": "playwright",
           "label": "Playwright",
           "hint": "Real browser",
+          "platforms": ["web"],
           "commands": ["__ADD_DEV__ @playwright/test", "__PMX__ playwright install"],
           "notes": ["Tests your site in a real browser", "Downloads browsers (one-time)"]
         },
@@ -283,8 +316,25 @@
           "id": "cypress",
           "label": "Cypress",
           "hint": "Visual",
+          "platforms": ["web"],
           "commands": ["__ADD_DEV__ cypress"],
           "notes": ["Adds Cypress for click tests."]
+        },
+        {
+          "id": "maestro",
+          "label": "Maestro",
+          "hint": "Tap-through tests",
+          "platforms": ["mobile"],
+          "commands": ["curl -Ls https://get.maestro.mobile.dev | bash"],
+          "notes": ["Installs Maestro for tap-through app tests."]
+        },
+        {
+          "id": "detox",
+          "label": "Detox",
+          "hint": "Device tests",
+          "platforms": ["mobile"],
+          "commands": ["__ADD_DEV__ detox", "__PMX__ detox init"],
+          "notes": ["Adds Detox for on-device tests.", "Creates Detox settings"]
         }
       ]
     },
@@ -350,6 +400,84 @@
           "hint": "Uses AGENTS.md",
           "commands": ["__AI_RULES_GENERIC__"],
           "notes": ["Creates AGENTS.md with your stack + rules"]
+        }
+      ]
+    },
+    {
+      "id": "skills",
+      "label": "AI skills",
+      "help": "One skill for your AI assistant.",
+      "options": [
+        { "id": "none", "label": "No AI skills", "hint": "Skip", "commands": [], "notes": [] },
+        {
+          "id": "frontend-design",
+          "label": "Premium UI design",
+          "hint": "Distinctive pages",
+          "commands": ["npx -y skills add anthropics/skills --skill frontend-design -y"],
+          "notes": ["Installs Frontend Design"]
+        },
+        {
+          "id": "web-guidelines",
+          "label": "Design guidelines audit",
+          "hint": "UI + a11y check",
+          "commands": ["npx -y skills add vercel-labs/agent-skills --skill web-design-guidelines -y"],
+          "notes": ["Installs Design Guidelines"]
+        },
+        {
+          "id": "shadcn",
+          "label": "shadcn/ui",
+          "hint": "Components done right",
+          "commands": ["npx -y skills add shadcn/ui --skill shadcn -y"],
+          "notes": ["Installs shadcn Skill"]
+        },
+        {
+          "id": "webapp-testing",
+          "label": "App auto-testing",
+          "hint": "Playwright site tests",
+          "commands": ["npx -y skills add anthropics/skills --skill webapp-testing -y"],
+          "notes": ["Installs App Testing"]
+        },
+        {
+          "id": "tdd",
+          "label": "Test-first coding",
+          "hint": "Tests before code",
+          "commands": ["npx -y skills add obra/superpowers --skill test-driven-development -y"],
+          "notes": ["Installs Test-First Coding"]
+        },
+        {
+          "id": "code-review",
+          "label": "Code review",
+          "hint": "Review before merge",
+          "commands": ["npx -y skills add obra/superpowers --skill requesting-code-review -y"],
+          "notes": ["Installs Code Review"]
+        },
+        {
+          "id": "postgres-rules",
+          "label": "Postgres best practices",
+          "hint": "Safe Postgres rules",
+          "commands": ["npx -y skills add supabase/agent-skills --skill supabase-postgres-best-practices -y"],
+          "notes": ["Installs Postgres Rules"]
+        },
+        {
+          "id": "mcp-builder",
+          "label": "MCP builder",
+          "hint": "Link external tools",
+          "commands": ["npx -y skills add anthropics/skills --skill mcp-builder -y"],
+          "notes": ["Installs MCP Builder"]
+        },
+        {
+          "id": "documents",
+          "label": "Document skills",
+          "hint": "PDF + Office files",
+          "commands": ["npx -y skills add anthropics/skills --skill pdf --skill docx --skill pptx --skill xlsx -y"],
+          "notes": ["Installs Document Skills"]
+        },
+        {
+          "id": "skill-creator",
+          "label": "Skill creator",
+          "hint": "Make your own",
+          "commands": ["npx -y skills add anthropics/skills --skill skill-creator -y"],
+          "notes": ["Installs Skill Creator"]
         }
       ]
     }

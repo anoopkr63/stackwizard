@@ -15,7 +15,7 @@ export default function Nav() {
 
   return (
     <div className="sticky top-3 z-40 px-3 sm:top-4 sm:px-6">
-      <header className="mx-auto max-w-5xl rounded-full border border-line/70 bg-white/90 shadow-[0_12px_32px_-16px_rgba(27,20,13,0.3)] backdrop-blur">
+      <header className="mx-auto max-w-5xl rounded-full border border-line/70 bg-white shadow-[0_12px_32px_-16px_rgba(27,20,13,0.3)]">
         <nav aria-label="Main" className="flex h-14 items-center justify-between gap-2 pl-4 pr-2 sm:pl-5">
           <Link href="#top" className="display flex items-center gap-2 text-lg font-bold">
             <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-lg bg-ink text-cream">

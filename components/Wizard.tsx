@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import web from "@/data/web.json";
 import addons from "@/data/addons.json";
-import { assemble, buildScript, defaultSelections, PRESETS } from "@/lib/assemble";
+import { assemble, buildScript, catalogFor, defaultSelections, isOptionVisible, PRESETS } from "@/lib/assemble";
 import { decodeSelections, encodeSelections } from "@/lib/share";
-import type { WizardSelections } from "@/lib/types";
+import type { PlatformId, WizardSelections } from "@/lib/types";
 import { SectionEyebrow, SectionSub, SectionTitle } from "./Section";
 import Reveal from "./Reveal";
 import FieldSelect from "./ui/select";
+import FieldMultiSelect from "./ui/multi-select";
 
 function Field({
   id,
@@ -68,6 +68,32 @@ export default function Wizard() {
 
   const ormHidden = ["none", "supabase", "firebase"].includes(sel.addons.database);
 
+  const platform: PlatformId = sel.platform ?? "web";
+
+  function switchPlatform(p: PlatformId) {
+    setSel((prev) => {
+      const next: WizardSelections = {
+        ...prev,
+        platform: p,
+        framework: p === "mobile" ? "expo" : "nextjs",
+        styling: p === "mobile" ? "nativewind" : "tailwind",
+        addons: { ...prev.addons },
+      };
+      // Fresh platform, fresh rules — drop picks the new platform doesn't offer
+      // (e.g. NextAuth on mobile) instead of leaving a dropdown blank.
+      for (const g of addons.groups) {
+        if (!g.options) continue;
+        const cur = next.addons[g.id] ?? "none";
+        const opt = g.options.find((o) => o.id === cur);
+        if (cur !== "none" && (!opt || !isOptionVisible(opt, next))) {
+          next.addons[g.id] = "none";
+        }
+      }
+      return next;
+    });
+    setCopied(null);
+  }
+
   // Commands scaffold; they don't write app code. Name exactly what's left
   // so the user isn't surprised after the last command runs.
   const codeGaps = useMemo(() => {
@@ -79,13 +105,17 @@ export default function Wizard() {
     }
     if ((sel.addons.auth ?? "none") !== "none") {
       gaps.push(
-        "Login: add callback route + session check."
+        platform === "mobile"
+          ? "Login: wire the provider SDK into your navigation."
+          : "Login: add callback route + session check."
       );
     }
     const pay = sel.addons.payments ?? "none";
     if (pay !== "none" && pay !== "lemonsqueezy") {
       gaps.push(
-        "Payments: add a webhook route."
+        pay === "revenuecat"
+          ? "Payments: connect App Store / Play in the RevenueCat dashboard."
+          : "Payments: add a webhook route."
       );
     }
     return gaps;
@@ -118,13 +148,13 @@ export default function Wizard() {
     URL.revokeObjectURL(url);
   }
 
-  const cat = (id: string) => web.categories.find((c) => c.id === id);
+  const cat = (id: string) => catalogFor(platform).categories.find((c) => c.id === id);
 
   return (
     <section id="build" className="scroll-mt-20 border-y border-line bg-parchment">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
         <Reveal>
-          <SectionEyebrow>Build my stack · Web</SectionEyebrow>
+          <SectionEyebrow>Build my stack · {platform === "mobile" ? "Mobile" : "Web"}</SectionEyebrow>
           <SectionTitle>Answer the questions. Watch the commands appear.</SectionTitle>
           <SectionSub>
             Updates live as you pick.
@@ -165,25 +195,42 @@ export default function Wizard() {
           <div className="space-y-6">
             <fieldset>
               <legend className="display mb-3 text-lg font-semibold">
-                Platform <span className="ml-1 rounded-full bg-ink px-2 py-0.5 text-xs text-cream">Web · live</span>
+                Platform
               </legend>
-              <div className="grid grid-cols-3 gap-2" role="note" aria-label="Platforms">
-                {["Web", "Mobile", "Desktop"].map((p) => (
-                  <div
-                    key={p}
-                    className={`rounded-xl border p-3 text-center text-sm font-semibold ${
-                      p === "Web" ? "border-ink bg-white ring-1 ring-ink" : "border-line bg-white/60 text-muted"
-                    }`}
-                  >
-                    {p}
-                    {p !== "Web" && <span className="block text-xs font-normal">coming soon</span>}
-                  </div>
-                ))}
+              <div className="grid grid-cols-3 gap-2" role="group" aria-label="Platforms">
+                {(["web", "mobile"] as PlatformId[]).map((p) => {
+                  const active = platform === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => switchPlatform(p)}
+                      aria-pressed={active}
+                      className={`rounded-xl border p-3 text-center text-sm font-semibold transition-colors ${
+                        active
+                          ? "border-ink bg-white ring-1 ring-ink"
+                          : "border-line bg-white/60 text-muted hover:border-ink/40 hover:text-ink"
+                      }`}
+                    >
+                      {p === "web" ? "Web" : "Mobile"}
+                      <span className="block text-xs font-normal">live</span>
+                    </button>
+                  );
+                })}
+                <div
+                  aria-disabled="true"
+                  className="rounded-xl border border-line bg-white/60 p-3 text-center text-sm font-semibold text-muted"
+                >
+                  Desktop
+                  <span className="block text-xs font-normal">coming soon</span>
+                </div>
               </div>
             </fieldset>
 
             <fieldset>
-              <legend className="display mb-3 text-lg font-semibold">Core — what the site is made of</legend>
+              <legend className="display mb-3 text-lg font-semibold">
+                {platform === "mobile" ? "Core — what the app is made of" : "Core — what the site is made of"}
+              </legend>
               <div className="grid gap-3 sm:grid-cols-2">
                 {["language", "framework", "styling", "packageManager"].map((id) => {
                   const c = cat(id);
@@ -204,14 +251,22 @@ export default function Wizard() {
               </div>
             </fieldset>
 
-            <fieldset>
-              <legend className="display mb-3 text-lg font-semibold">Code health — optional, recommended</legend>
-              <div className="grid gap-3">
-                {addons.groups
-                  .filter((g) => g.toggles)
-                  .flatMap((g) => g.toggles!)
-                  .map((t) => (
-                    <label
+            {addons.groups
+              .filter((g) => g.toggles)
+              .map((g) => (
+                <fieldset key={g.id}>
+                  <legend className="display mb-3 text-lg font-semibold">
+                    {g.id === "code-health" ? "Code health — optional, recommended" : g.label}
+                  </legend>
+                  <div className="grid gap-3">
+                    {g.toggles!
+                      .filter(
+                        (t) =>
+                          (!t.platforms || t.platforms.includes(platform)) &&
+                          (!t.frameworks || t.frameworks.includes(sel.framework))
+                      )
+                      .map((t) => (
+                      <label
                       key={t.id}
                       className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(27,20,13,0.06)] hover:border-ink"
                     >
@@ -226,9 +281,10 @@ export default function Wizard() {
                         <span className="text-sm text-muted">{t.help}</span>
                       </span>
                     </label>
-                  ))}
-              </div>
-            </fieldset>
+                    ))}
+                  </div>
+                </fieldset>
+              ))}
 
             <fieldset>
               <legend className="display mb-3 text-lg font-semibold">Extras — only pick what you need</legend>
@@ -237,6 +293,36 @@ export default function Wizard() {
                   .filter((g) => g.options)
                   .map((g) => {
                     if (g.id === "orm" && ormHidden) return null;
+                    // AI skills is the one multi-choice dropdown — same place,
+                    // same look, checkboxes inside. Stored as comma-separated
+                    // ids so share links keep working as plain strings.
+                    if (g.id === "skills") {
+                      const raw = sel.addons[g.id] ?? "none";
+                      const picked = raw === "none" ? [] : raw.split(",").filter(Boolean);
+                      return (
+                        <Field key={g.id} id={`a-${g.id}`} label={g.label} help={g.help}>
+                          <FieldMultiSelect
+                            id={`a-${g.id}`}
+                            label={g.label}
+                            value={picked}
+                            onChange={(ids) =>
+                              setSel((p) => ({
+                                ...p,
+                                addons: {
+                                  ...p.addons,
+                                  [g.id]: ids.length ? ids.join(",") : "none",
+                                },
+                              }))
+                            }
+                            options={g
+                              .options!.filter(
+                                (o) => o.id !== "none" && isOptionVisible(o, sel)
+                              )
+                              .map((o) => ({ id: o.id, label: o.label, hint: o.hint }))}
+                          />
+                        </Field>
+                      );
+                    }
                     return (
                       <Field key={g.id} id={`a-${g.id}`} label={g.label} help={g.help}>
                         <FieldSelect
@@ -244,9 +330,37 @@ export default function Wizard() {
                           label={g.label}
                           value={sel.addons[g.id] ?? "none"}
                           onChange={(v) =>
-                            setSel((p) => ({ ...p, addons: { ...p.addons, [g.id]: v } }))
+                            setSel((p) => {
+                              const next: WizardSelections = {
+                                ...p,
+                                addons: { ...p.addons, [g.id]: v },
+                              };
+                              // A changed pick can orphan others (e.g. DB away
+                              // from MongoDB with Mongoose set) — drop picks
+                              // that are no longer visible instead of leaving
+                              // the dropdown blank.
+                              for (const gg of addons.groups) {
+                                if (!gg.options) continue;
+                                if (gg.id === "skills") continue; // multi-value, validated per-id below
+                                if (
+                                  gg.id === "orm" &&
+                                  ["none", "supabase", "firebase"].includes(
+                                    next.addons.database ?? "none"
+                                  )
+                                ) {
+                                  next.addons.orm = "none";
+                                  continue;
+                                }
+                                const cur = next.addons[gg.id] ?? "none";
+                                const opt = gg.options.find((o) => o.id === cur);
+                                if (cur !== "none" && (!opt || !isOptionVisible(opt, next))) {
+                                  next.addons[gg.id] = "none";
+                                }
+                              }
+                              return next;
+                            })
                           }
-                          options={g.options!}
+                          options={g.options!.filter((o) => isOptionVisible(o, sel))}
                         />
                       </Field>
                     );
@@ -310,16 +424,15 @@ export default function Wizard() {
             </div>
 
             <div className="mt-4 rounded-xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(27,20,13,0.06)]">
-              <h3 className="display text-lg font-semibold">What each line does</h3>
-              <ol className="mt-3 space-y-3">
+              <h3 className="display text-lg font-semibold">What each step does</h3>
+              <ol className="mt-3 space-y-2">
                 {steps.map((s, i) => (
                   <li key={`n-${i}`} className="flex gap-3 text-sm leading-relaxed">
                     <span aria-hidden="true" className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-parchment text-xs font-bold">
                       {i + 1}
                     </span>
                     <span>
-                      <code className="break-all font-mono text-[13px] font-medium">{s.command}</code>
-                      <span className="block text-muted">{s.note}</span>
+                      <span className="block">{s.note || s.command.split("\n")[0]}</span>
                       <span className="text-xs font-semibold uppercase tracking-wider text-muted/80">{s.section}</span>
                     </span>
                   </li>

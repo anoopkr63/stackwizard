@@ -1,0 +1,88 @@
+{
+  "platform": "mobile",
+  "categories": [
+    {
+      "id": "language",
+      "label": "Language",
+      "help": "The language your app code is written in.",
+      "options": [
+        { "id": "typescript", "label": "TypeScript", "hint": "Recommended", "commands": [], "notes": [] },
+        { "id": "javascript", "label": "JavaScript", "hint": "Simplest", "commands": [], "notes": [] }
+      ]
+    },
+    {
+      "id": "framework",
+      "label": "Framework",
+      "help": "Your app's foundation.",
+      "options": [
+        {
+          "id": "expo",
+          "label": "Expo",
+          "hint": "Easiest",
+          "commands": ["__PMX__ create-expo-app@latest my-app", "cd my-app"],
+          "notes": ["Creates an Expo app in my-app (installs everything)", "Enters my-app"]
+        },
+        {
+          "id": "react-native",
+          "label": "React Native (CLI)",
+          "hint": "Bare",
+          "commands": ["__PMX__ react-native@latest init my-app", "cd my-app", "__INSTALL__"],
+          "notes": ["Creates a bare React Native app called my-app", "Enters my-app", "Installs dependencies"]
+        },
+        {
+          "id": "ionic",
+          "label": "Ionic + React",
+          "hint": "Hybrid",
+          "commands": ["__PMX__ @ionic/cli start my-app blank --type=react", "cd my-app"],
+          "notes": ["Creates an Ionic React app in my-app (installs everything)", "Enters my-app"]
+        }
+      ]
+    },
+    {
+      "id": "styling",
+      "label": "Styling",
+      "help": "How your app looks.",
+      "options": [
+        {
+          "id": "nativewind",
+          "label": "NativeWind",
+          "hint": "Recommended",
+          "commands": ["__ADD__ nativewind tailwindcss"],
+          "notes": ["Adds NativeWind (Tailwind for React Native)"]
+        },
+        {
+          "id": "stylesheet",
+          "label": "StyleSheet",
+          "hint": "Built in",
+          "commands": [],
+          "notes": ["Built in — nothing to install."]
+        },
+        {
+          "id": "tamagui",
+          "label": "Tamagui",
+          "hint": "Full UI kit",
+          "commands": ["__ADD__ tamagui"],
+          "notes": ["Adds Tamagui components + themes"]
+        },
+        {
+          "id": "rn-paper",
+          "label": "React Native Paper",
+          "hint": "Material",
+          "commands": ["__ADD__ react-native-paper"],
+          "notes": ["Adds Material-style components"]
+        }
+      ]
+    },
+    {
+      "id": "packageManager",
+      "label": "Package manager",
+      "help": "Pick the one you know.",
+      "options": [
+        { "id": "npm", "label": "npm", "hint": "With Node", "commands": [], "notes": [] },
+        { "id": "yarn", "label": "yarn", "hint": "Popular", "commands": [], "notes": [] },
+        { "id": "pnpm", "label": "pnpm", "hint": "Fast", "commands": [], "notes": [] },
+        { "id": "bun", "label": "bun", "hint": "Fastest", "commands": [], "notes": [] }
+      ]
+    }
+  ]
+}

@@ -6,10 +6,15 @@ import Features from "@/components/Features";
 import Faq from "@/components/Faq";
 import Closing from "@/components/Closing";
 import Footer from "@/components/Footer";
+import IntroLoader from "@/components/IntroLoader";
+import ScrollProgress from "@/components/ScrollProgress";
+import BackToTop from "@/components/BackToTop";
 
 export default function Home() {
   return (
     <div id="top">
+      <ScrollProgress />
+      <IntroLoader />
       <Nav />
       <main>
         <Hero />
@@ -20,6 +25,7 @@ export default function Home() {
         <Closing />
       </main>
       <Footer />
+      <BackToTop />
     </div>
   );
 }

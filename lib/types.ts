@@ -7,6 +7,13 @@ export interface StackOption {
   hint?: string;
   commands: string[];
   notes: string[];
+  showWhen?: Record<string, string[]>;
+  hideWhen?: Record<string, string[]>;
+  /** Platforms this option is offered on. Omitted = all platforms. */
+  platforms?: string[];
+  /** Per-platform command/note overrides (used on mobile when present). */
+  commandsMobile?: string[];
+  notesMobile?: string[];
 }
 
 export interface Category {
@@ -22,6 +29,8 @@ export interface Toggle {
   help: string;
   commands: string[];
   notes: string[];
+  platforms?: string[];
+  frameworks?: string[];
 }
 
 export interface AddonGroup {
@@ -36,8 +45,10 @@ export interface AddonGroup {
 
 export type PackageManagerId = "npm" | "yarn" | "pnpm" | "bun";
 export type LanguageId = "typescript" | "javascript";
+export type PlatformId = "web" | "mobile";
 
 export interface WizardSelections {
+  platform: PlatformId;
   language: LanguageId;
   framework: string;
   styling: string;
