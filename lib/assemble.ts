@@ -688,7 +688,7 @@ function devCommand(
           }
         : {
             command: pm === "npm" ? "npm run android" : `${t.run} android`,
-            note: "Runs on the Android emulator",
+            note: "Runs on the Android emulator (needs Android Studio first)",
           };
     if (framework === "ionic")
       return {
@@ -875,8 +875,16 @@ export function assemble(selections: WizardSelections): BuildStep[] {
     const who = env.services.length ? ` for ${env.services.join(" + ")}` : "";
     push(
       `${nextNo} · Save your keys`,
-      [`cat > ${envFile} <<'EOF'`, ...env.lines, "EOF"].join("\n"),
-      `Creates ${envFile} pre-filled${who}. Paste values from each dashboard, restart dev server. Never commit it.`
+      `touch ${envFile}`,
+      "Creates your env file. Never commit it."
+    );
+    // The scaffolds' default gitignores don't all cover our env filename —
+    // back the "never commit it" promise with a real ignore line. Idempotent:
+    // re-running the script never adds it twice.
+    push(
+      `${nextNo} · Save your keys`,
+      `grep -qxF "${envFile}" .gitignore 2>/dev/null || echo "${envFile}" >> .gitignore`,
+      "Keeps your keys out of git"
     );
     nextNo += 1;
   }

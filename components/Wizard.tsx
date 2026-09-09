@@ -35,6 +35,7 @@ function Field({
 export default function Wizard() {
   const [sel, setSel] = useState<WizardSelections>(() => defaultSelections());
   const [copied, setCopied] = useState<"commands" | "link" | null>(null);
+  const [copiedStep, setCopiedStep] = useState<number | null>(null);
   const [loadedFromLink, setLoadedFromLink] = useState(false);
 
   // Load shared selections once from ?s=
@@ -64,6 +65,7 @@ export default function Wizard() {
   const set = <K extends keyof WizardSelections>(key: K, value: WizardSelections[K]) => {
     setSel((prev) => ({ ...prev, [key]: value }));
     setCopied(null);
+    setCopiedStep(null);
   };
 
   const ormHidden = ["none", "supabase", "firebase"].includes(sel.addons.database);
@@ -93,6 +95,7 @@ export default function Wizard() {
       return next;
     });
     setCopied(null);
+    setCopiedStep(null);
   }
 
   // Commands scaffold; they don't write app code. Name exactly what's left
@@ -124,7 +127,7 @@ export default function Wizard() {
     return gaps;
   }, [sel]);
 
-  async function copyText(text: string, which: "commands" | "link") {
+  async function writeClipboard(text: string) {
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -135,8 +138,20 @@ export default function Wizard() {
       document.execCommand("copy");
       ta.remove();
     }
+  }
+
+  async function copyText(text: string, which: "commands" | "link") {
+    await writeClipboard(text);
+    setCopiedStep(null);
     setCopied(which);
     window.setTimeout(() => setCopied(null), 2000);
+  }
+
+  async function copyStep(text: string, i: number) {
+    await writeClipboard(text);
+    setCopied(null);
+    setCopiedStep(i);
+    window.setTimeout(() => setCopiedStep(null), 2000);
   }
 
   function downloadScript() {
@@ -444,14 +459,27 @@ export default function Wizard() {
                 aria-label="Generated terminal commands"
               >
                 {steps.map((s, i) => (
-                  <p key={`${s.command}-${i}`} className={s.command.startsWith("#") ? "text-white/50" : "whitespace-pre-wrap"}>
-                    {!s.command.startsWith("#") && !s.command.includes("\n") && (
-                      <span aria-hidden="true" className="mr-2 select-none text-ember">
-                        $
-                      </span>
+                  <div key={`${s.command}-${i}`} className="group flex items-start gap-1">
+                    <p className={`flex-1 ${s.command.startsWith("#") ? "text-white/50" : "whitespace-pre-wrap"}`}>
+                      {!s.command.startsWith("#") && !s.command.includes("\n") && (
+                        <span aria-hidden="true" className="mr-2 select-none text-ember">
+                          $
+                        </span>
+                      )}
+                      {s.command}
+                    </p>
+                    {!s.command.startsWith("#") && (
+                      <button
+                        type="button"
+                        onClick={() => copyStep(s.command, i)}
+                        aria-label={`Copy step ${i + 1}: ${s.section}`}
+                        title="Copy this step"
+                        className="mt-1 shrink-0 rounded-md px-1.5 py-0.5 font-sans text-[11px] font-semibold text-white/40 opacity-0 transition-opacity hover:bg-white/10 hover:text-white focus-visible:opacity-100 group-hover:opacity-100"
+                      >
+                        {copiedStep === i ? "Copied" : "Copy"}
+                      </button>
                     )}
-                    {s.command}
-                  </p>
+                  </div>
                 ))}
               </div>
             </div>
@@ -472,7 +500,7 @@ export default function Wizard() {
                 ))}
               </ol>
               <div className="mt-4 rounded-xl bg-parchment p-3 text-sm text-muted">
-                Run it all at once with Download .sh — or paste one block at a time.
+                Run it all at once with Download .sh — or hover any line to copy one step at a time.
               </div>
               {codeGaps.length > 0 && (
                 <div className="mt-3 rounded-xl border border-dashed border-ink/30 p-3 text-sm">
