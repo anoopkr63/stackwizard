@@ -2,6 +2,15 @@
   "platform": "mobile",
   "categories": [
     {
+      "id": "target",
+      "label": "Target",
+      "help": "The phone you ship to first. This changes the run commands.",
+      "options": [
+        { "id": "android", "label": "Android", "hint": "Most users", "commands": [], "notes": [] },
+        { "id": "ios", "label": "iPhone", "hint": "Needs a Mac to build", "commands": [], "notes": [] }
+      ]
+    },
+    {
       "id": "language",
       "label": "Language",
       "help": "The language your app code is written in.",
@@ -26,8 +35,8 @@
           "id": "react-native",
           "label": "React Native (CLI)",
           "hint": "Bare",
-          "commands": ["__PMX__ react-native@latest init my-app", "cd my-app", "__INSTALL__"],
-          "notes": ["Creates a bare React Native app called my-app", "Enters my-app", "Installs dependencies"]
+          "commands": ["__PMX__ @react-native-community/cli@latest init MyApp", "cd MyApp", "__INSTALL__"],
+          "notes": ["Creates a bare React Native app called MyApp (one word, no dashes — native code needs it)", "Enters MyApp", "Installs dependencies"]
         },
         {
           "id": "ionic",

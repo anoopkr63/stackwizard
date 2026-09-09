@@ -1,0 +1,95 @@
+{
+  "platform": "desktop",
+  "categories": [
+    {
+      "id": "language",
+      "label": "Language",
+      "help": "The language your app's interface code is written in.",
+      "options": [
+        { "id": "typescript", "label": "TypeScript", "hint": "Recommended", "commands": [], "notes": [] },
+        { "id": "javascript", "label": "JavaScript", "hint": "Simplest", "commands": [], "notes": [] }
+      ]
+    },
+    {
+      "id": "framework",
+      "label": "Framework",
+      "help": "Your app's shell. All three ship real .app / .exe / AppImage binaries.",
+      "options": [
+        {
+          "id": "tauri",
+          "label": "Tauri",
+          "hint": "Recommended",
+          "commands": ["__PMX__ create-tauri-app@latest my-app", "cd my-app", "__INSTALL__"],
+          "notes": ["Starts the Tauri setup (needs Rust from rustup.rs — pick React when asked)", "Enters my-app", "Installs dependencies"]
+        },
+        {
+          "id": "electron",
+          "label": "Electron",
+          "hint": "Most apps",
+          "commands": ["__ELECTRON_CREATE__", "cd my-app", "__INSTALL__"],
+          "notes": ["Creates an Electron app in my-app (official Forge template)", "Enters my-app", "Installs dependencies"]
+        },
+        {
+          "id": "wails",
+          "label": "Wails",
+          "hint": "Go backend",
+          "commands": ["go install github.com/wailsapp/wails/v2/cmd/wails@latest", "__WAILS_INIT__", "cd my-app", "__INSTALL__"],
+          "notes": ["Installs the Wails CLI (needs Go first)", "Scaffolds a Wails app in my-app", "Enters my-app", "Installs frontend dependencies"]
+        }
+      ]
+    },
+    {
+      "id": "styling",
+      "label": "Styling",
+      "help": "How your app window looks (all three render web UI).",
+      "options": [
+        {
+          "id": "tailwind",
+          "label": "Tailwind CSS",
+          "hint": "Recommended",
+          "commands": ["__TAILWIND__"],
+          "notes": ["Adds Tailwind"]
+        },
+        {
+          "id": "css-modules",
+          "label": "CSS Modules",
+          "hint": "Per-file CSS",
+          "commands": [],
+          "notes": ["Built in — nothing to install."]
+        },
+        {
+          "id": "styled-components",
+          "label": "styled-components",
+          "hint": "CSS in JS",
+          "commands": ["__ADD__ styled-components"],
+          "notes": ["Adds CSS-in-components"]
+        },
+        {
+          "id": "scss",
+          "label": "SCSS",
+          "hint": "CSS extras",
+          "commands": ["__ADD__ sass"],
+          "notes": ["Adds Sass (.scss files)"]
+        },
+        {
+          "id": "plain-css",
+          "label": "Plain CSS",
+          "hint": "No tools",
+          "commands": [],
+          "notes": ["Built in — nothing to install."]
+        }
+      ]
+    },
+    {
+      "id": "packageManager",
+      "label": "Package manager",
+      "help": "Pick the one you know.",
+      "options": [
+        { "id": "npm", "label": "npm", "hint": "With Node", "commands": [], "notes": [] },
+        { "id": "yarn", "label": "yarn", "hint": "Popular", "commands": [], "notes": [] },
+        { "id": "pnpm", "label": "pnpm", "hint": "Fast", "commands": [], "notes": [] },
+        { "id": "bun", "label": "bun", "hint": "Fastest", "commands": [], "notes": [] }
+      ]
+    }
+  ]
+}

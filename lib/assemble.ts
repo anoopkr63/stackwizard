@@ -1,10 +1,13 @@
 import type { BuildStep, PackageManagerId, PlatformId, StackOption, WizardSelections } from "./types";
 import web from "@/data/web.json";
 import mobile from "@/data/mobile.json";
+import desktop from "@/data/desktop.json";
 import addons from "@/data/addons.json";
 
 export function catalogFor(platform: PlatformId) {
-  return platform === "mobile" ? mobile : web;
+  if (platform === "mobile") return mobile;
+  if (platform === "desktop") return desktop;
+  return web;
 }
 
 // An option is visible only on its listed platforms (when set) and only when
@@ -23,16 +26,211 @@ export function isOptionVisible(opt: OptionLike, selections: WizardSelections): 
   return true;
 }
 
-// Mobile overrides for options whose package differs per platform
+// Per-platform overrides for options whose package differs per platform
 // (Stripe web vs Stripe React Native, Clerk web vs Clerk Expo…).
 function optionCommands(opt: OptionLike, platform: PlatformId): string[] {
   if (platform === "mobile" && opt.commandsMobile) return opt.commandsMobile;
+  if (platform === "desktop" && opt.commandsDesktop) return opt.commandsDesktop;
   return opt.commands;
 }
 
 function optionNotes(opt: OptionLike, platform: PlatformId): string[] {
   if (platform === "mobile" && opt.notesMobile) return opt.notesMobile;
+  if (platform === "desktop" && opt.notesDesktop) return opt.notesDesktop;
   return opt.notes;
+}
+
+// Client-side prefix per framework — server secrets never get this prefix.
+function publicPrefix(framework: string): string {
+  if (framework === "nextjs") return "NEXT_PUBLIC_";
+  if (framework === "nuxt") return "NUXT_PUBLIC_";
+  if (framework === "sveltekit") return "PUBLIC_";
+  if (framework === "angular") return "NG_APP_";
+  if (framework === "expo") return "EXPO_PUBLIC_";
+  if (
+    framework === "react-vite" ||
+    framework === "vue" ||
+    framework === "solid" ||
+    framework === "tauri" ||
+    framework === "electron" ||
+    framework === "wails" ||
+    framework === "ionic"
+  )
+    return "VITE_";
+  return ""; // bare react-native — no prefix convention
+}
+
+// Wails runs npm/Vite inside frontend/ — a root .env would never be read.
+function envFileFor(framework: string): string {
+  if (framework === "nextjs") return ".env.local";
+  if (framework === "wails") return "frontend/.env";
+  return ".env";
+}
+
+// One env block per service: what keys to paste + where each value lives.
+// Placeholders show the real format (sk_test_…, pk_test_…) so a blank
+// `touch .env` never leaves the user guessing.
+function envBlocks(sel: WizardSelections): { lines: string[]; services: string[] } {
+  const lines: string[] = [
+    "# StackWizard env — paste your real values below, then restart the dev server.",
+    "# Never commit this file. Never paste real keys into chat or AI tools.",
+  ];
+  const services: string[] = [];
+  const PUB = publicPrefix(sel.framework);
+  const platform = sel.platform ?? "web";
+  const database = sel.addons.database ?? "none";
+  const auth = sel.addons.auth ?? "none";
+  const payments = sel.addons.payments ?? "none";
+  const orm = sel.addons.orm ?? "none";
+
+  const serverOnlyNote =
+    PUB && PUB !== ""
+      ? `# Server-only: no ${PUB} prefix on purpose — never expose in the browser.`
+      : "# Server-only: never ship these to the browser.";
+
+  if (database === "supabase" || auth === "supabase-auth") {
+    services.push("Supabase");
+    lines.push(
+      "",
+      "# Supabase — supabase.com/dashboard → your project → Settings → API",
+      `${PUB}SUPABASE_URL=https://xyzcompany.supabase.co`,
+      `${PUB}SUPABASE_ANON_KEY=sb_publishable_xxxxxxxxxxxxxxxx`,
+      serverOnlyNote,
+      "SUPABASE_SERVICE_ROLE_KEY=sb_secret_xxxxxxxxxxxxxxxx",
+    );
+  }
+  if (database === "firebase" || auth === "firebase-auth") {
+    services.push("Firebase");
+    lines.push(
+      "",
+      "# Firebase — console.firebase.google.com → Project settings → General → Your apps → SDK setup",
+      `${PUB}FIREBASE_API_KEY=AIzaXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`,
+      `${PUB}FIREBASE_AUTH_DOMAIN=my-app.firebaseapp.com`,
+      `${PUB}FIREBASE_PROJECT_ID=my-app-id`,
+      `${PUB}FIREBASE_STORAGE_BUCKET=my-app.appspot.com`,
+      `${PUB}FIREBASE_MESSAGING_SENDER_ID=1234567890`,
+      `${PUB}FIREBASE_APP_ID=1:1234567890:web:abc123def456`,
+    );
+  }
+  if (database === "postgres" || database === "mysql" || database === "mongodb" || database === "sqlite") {
+    if (database === "postgres") {
+      services.push("Postgres");
+      lines.push("", "# Postgres — matches the docker command above (user postgres, password dev)", "DATABASE_URL=postgresql://postgres:dev@localhost:5432/myapp");
+    } else if (database === "mysql") {
+      services.push("MySQL");
+      lines.push("", "# MySQL — matches the docker command above (user root, password dev)", "DATABASE_URL=mysql://root:dev@localhost:3306/myapp");
+    } else if (database === "mongodb") {
+      services.push("MongoDB");
+      lines.push("", "# MongoDB — matches the docker command above", "MONGODB_URI=mongodb://localhost:27017/myapp");
+    } else {
+      services.push("SQLite");
+      lines.push("", "# SQLite — one file, created by the ORM on first run", "DATABASE_URL=file:./dev.db");
+    }
+    if (orm !== "none" && database === "mongodb" && orm !== "mongoose") {
+      lines.push("# Note: this ORM expects a SQL driver — Mongoose is the MongoDB pick.");
+    }
+  }
+  if (auth === "nextauth") {
+    services.push("Auth.js");
+    lines.push(
+      "",
+      "# Auth.js — authjs.dev → your provider → OAuth app. Generate the secret with: npx auth secret",
+      "AUTH_SECRET=replace-with-32-char-random-string",
+      "AUTH_GITHUB_ID=Iv1.xxxxxxxxxxxxxxxx",
+      "AUTH_GITHUB_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    );
+  } else if (auth === "clerk") {
+    services.push("Clerk");
+    lines.push(
+      "",
+      "# Clerk — dashboard.clerk.com → API keys",
+      `${PUB}CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`,
+      serverOnlyNote,
+      "CLERK_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    );
+  } else if (auth === "auth0") {
+    services.push("Auth0");
+    if (platform === "mobile") {
+      lines.push(
+        "",
+        "# Auth0 — manage.auth0.com → Applications → your app → Settings",
+        "AUTH0_DOMAIN=your-tenant.us.auth0.com",
+        "AUTH0_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      );
+    } else {
+      lines.push(
+        "",
+        "# Auth0 — manage.auth0.com → Applications → your app → Settings. Generate AUTH0_SECRET with: openssl rand -hex 32",
+        "AUTH0_SECRET=replace-with-32-char-random-string",
+        "AUTH0_BASE_URL=http://localhost:3000",
+        "AUTH0_ISSUER_BASE_URL=https://your-tenant.us.auth0.com",
+        "AUTH0_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        serverOnlyNote,
+        "AUTH0_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      );
+    }
+  }
+  if (payments === "stripe") {
+    services.push("Stripe");
+    lines.push(
+      "",
+      "# Stripe — dashboard.stripe.com/test/apikeys for keys, /test/webhooks for the secret",
+      "# Webhook secret for local dev: run `stripe listen --forward-to localhost:3000/api/webhooks/stripe`",
+      serverOnlyNote,
+      "STRIPE_SECRET_KEY=sk_test_51Hxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      `${PUB}STRIPE_PUBLISHABLE_KEY=pk_test_51Hxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`,
+      "STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    );
+  } else if (payments === "paypal") {
+    services.push("PayPal");
+    lines.push(
+      "",
+      "# PayPal — developer.paypal.com/dashboard → Sandbox → API credentials",
+      serverOnlyNote,
+      "PAYPAL_CLIENT_ID=AYxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "PAYPAL_CLIENT_SECRET=EOxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      `${PUB}PAYPAL_CLIENT_ID=AYxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`,
+    );
+  } else if (payments === "paddle") {
+    services.push("Paddle");
+    lines.push(
+      "",
+      "# Paddle — vendors.paddle.com → Developer Tools → Authentication + Notifications",
+      serverOnlyNote,
+      "PADDLE_API_KEY=pdl_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "PADDLE_WEBHOOK_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      `${PUB}PADDLE_CLIENT_TOKEN=live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`,
+      `${PUB}PADDLE_ENVIRONMENT=sandbox`,
+    );
+  } else if (payments === "razorpay") {
+    services.push("Razorpay");
+    lines.push(
+      "",
+      "# Razorpay — dashboard.razorpay.com → Settings → API Keys (Test Mode)",
+      serverOnlyNote,
+      "RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxxx",
+      "RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxx",
+      `${PUB}RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxxx`,
+    );
+  } else if (payments === "revenuecat") {
+    services.push("RevenueCat");
+    lines.push(
+      "",
+      "# RevenueCat — app.revenuecat.com → API keys (one per store)",
+      "REVENUECAT_APPLE_API_KEY=appl_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "REVENUECAT_GOOGLE_API_KEY=goog_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    );
+  } else if (payments === "lemonsqueezy") {
+    services.push("Lemon Squeezy");
+    lines.push(
+      "",
+      "# Lemon Squeezy — app.lemonsqueezy.com → Settings → API + Webhooks",
+      serverOnlyNote,
+      "LEMONSQUEEZY_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "LEMONSQUEEZY_WEBHOOK_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    );
+  }
+  return { lines, services };
 }
 
 // TypeORM's driver follows the database — never a hardcoded `pg`.
@@ -48,17 +246,19 @@ const DB_DRIVER: Record<string, string> = {
 // Starter files are zero-import (never break the build) except the Stripe
 // webhook, which is emitted only when Stripe is picked (dep guaranteed).
 const STRUCTURE_DIRS: Record<string, string[]> = {
+  // Next.js is scaffolded with --src-dir, so every path lives under src/
+  // (a root-level app/ dir would be silently ignored by the router).
   nextjs: [
-    "app/(marketing)",
-    "app/(app)",
-    "app/api/health",
-    "components/ui",
-    "components/marketing",
-    "components/app",
-    "features",
-    "lib",
-    "hooks",
-    "content",
+    "src/app/(marketing)",
+    "src/app/(app)",
+    "src/app/api/health",
+    "src/components/ui",
+    "src/components/marketing",
+    "src/components/app",
+    "src/features",
+    "src/lib",
+    "src/hooks",
+    "src/content",
     "tests/e2e",
   ],
   "react-vite": [
@@ -69,33 +269,77 @@ const STRUCTURE_DIRS: Record<string, string[]> = {
     "src/content",
     "tests/e2e",
   ],
+  // Vue (Vite): views + router + stores beside components. Env helper is the
+  // same Vite import.meta variant as react-vite.
+  vue: ["src/components", "src/views", "src/router", "src/stores", "src/composables", "src/lib"],
+  // Nuxt 4 (app/ layout): server/api is additive — the template owns nuxt.config
+  // and app.vue, which are never touched. Env uses runtimeConfig, so no stub.
+  nuxt: [
+    "app/components",
+    "app/composables",
+    "app/layouts",
+    "app/middleware",
+    "app/pages",
+    "app/plugins",
+    "app/utils",
+    "server/api",
+  ],
+  // SvelteKit: health is an additive route file; the template owns
+  // svelte.config and +page files, which are never touched.
+  sveltekit: ["src/lib", "src/routes", "src/routes/api/health"],
+  // Angular: feature dirs under src/app only. No stub — environments use
+  // Angular's environment files, and app.config is template-owned.
+  angular: ["src/app/components", "src/app/services", "src/app/guards", "src/app/interceptors", "src/app/models"],
+  // Solid (Vite): routes convention for @solidjs/router + the Vite env helper.
+  solid: ["src/components", "src/routes", "src/stores", "src/lib"],
   expo: ["src/app/(tabs)", "src/components", "src/hooks", "src/constants", "src/lib", "assets"],
   "react-native": ["src/screens", "src/navigation", "src/components", "src/lib", "src/hooks"],
   ionic: ["src/lib", "src/components", "src/hooks"],
+  // Desktop: frontend dirs only — native shells (src-tauri, electron main,
+  // wails backend) are template-owned, never scaffolded over.
+  tauri: ["src/components", "src/lib", "src/hooks"],
+  electron: ["src/components", "src/lib", "src/hooks"],
+  wails: ["frontend/src/components", "frontend/src/lib", "frontend/src/hooks"],
 };
 
 // Dirs that stay empty (no starter file lands in them) get a .gitkeep.
 const STRUCTURE_KEEP: Record<string, string[]> = {
   nextjs: [
-    "app/(marketing)",
-    "app/(app)",
-    "components/ui",
-    "components/marketing",
-    "components/app",
-    "features",
-    "hooks",
-    "content",
+    "src/app/(marketing)",
+    "src/app/(app)",
+    "src/components/ui",
+    "src/components/marketing",
+    "src/components/app",
+    "src/features",
+    "src/hooks",
+    "src/content",
     "tests/e2e",
   ],
   "react-vite": ["src/components", "src/features", "src/hooks", "src/content", "tests/e2e"],
+  vue: ["src/components", "src/views", "src/router", "src/stores", "src/composables"],
+  nuxt: ["app/components", "app/composables", "app/layouts", "app/middleware", "app/pages", "app/plugins", "app/utils"],
+  sveltekit: ["src/lib"],
+  angular: ["src/app/components", "src/app/services", "src/app/guards", "src/app/interceptors", "src/app/models"],
+  solid: ["src/components", "src/routes", "src/stores"],
   expo: ["src/app/(tabs)", "src/components", "src/hooks", "src/constants", "assets"],
   "react-native": ["src/screens", "src/navigation", "src/components", "src/hooks"],
   ionic: ["src/components", "src/hooks"],
+  tauri: ["src/components", "src/hooks"],
+  electron: ["src/components", "src/hooks"],
+  wails: ["frontend/src/components", "frontend/src/hooks"],
 };
 
 const STUB_HEALTH = `export async function GET() {
   return Response.json({ ok: true });
 }`;
+
+// Nuxt server route — defineEventHandler is auto-imported, so zero imports.
+const STUB_NUXT_HEALTH = `export default defineEventHandler(() => ({ ok: true }));`;
+
+// SvelteKit endpoint — additive route file, no imports needed.
+const STUB_SVELTE_HEALTH = `export function GET() {
+  return Response.json({ ok: true });
+};`;
 
 const STUB_ENV_TS = `// Read env safely: required("STRIPE_SECRET_KEY") throws listing what's missing.
 export function required(name: string): string {
@@ -186,7 +430,7 @@ function expandStructure(sel: WizardSelections): { command: string; note: string
   const ts = sel.language === "typescript";
   const ext = ts ? "ts" : "js";
   const stripe = (sel.addons.payments ?? "none") === "stripe";
-  const allDirs = stripe && sel.framework === "nextjs" ? [...dirs, "app/api/webhooks/stripe"] : dirs;
+  const allDirs = stripe && sel.framework === "nextjs" ? [...dirs, "src/app/api/webhooks/stripe"] : dirs;
   out.push({
     command: `mkdir -p ${allDirs.map((d) => `"${d}"`).join(" ")}`,
     note: "Makes production folders",
@@ -196,21 +440,36 @@ function expandStructure(sel: WizardSelections): { command: string; note: string
     note: "Keeps empty folders in git",
   });
   if (sel.framework === "nextjs") {
-    out.push({ command: heredoc(`app/api/health/route.${ext}`, STUB_HEALTH), note: "Checks your API is alive" });
-    out.push({ command: heredoc(`lib/env.${ext}`, ts ? STUB_ENV_TS : STUB_ENV_JS), note: "Reads env with clear errors" });
+    out.push({ command: heredoc(`src/app/api/health/route.${ext}`, STUB_HEALTH), note: "Checks your API is alive" });
+    out.push({ command: heredoc(`src/lib/env.${ext}`, ts ? STUB_ENV_TS : STUB_ENV_JS), note: "Reads env with clear errors" });
     if (stripe) {
       out.push({
-        command: heredoc(`app/api/webhooks/stripe/route.${ext}`, ts ? STUB_STRIPE_WH_TS : STUB_STRIPE_WH_JS),
+        command: heredoc(`src/app/api/webhooks/stripe/route.${ext}`, ts ? STUB_STRIPE_WH_TS : STUB_STRIPE_WH_JS),
         note: "Catches Stripe events",
       });
     }
-  } else if (sel.framework === "react-vite") {
+  } else if (sel.framework === "react-vite" || sel.framework === "vue" || sel.framework === "solid") {
+    // Vite-based UIs share the import.meta env helper.
     out.push({ command: heredoc(`src/lib/env.${ext}`, ts ? STUB_ENV_VITE_TS : STUB_ENV_VITE_JS), note: "Reads env with clear errors" });
+  } else if (sel.framework === "nuxt") {
+    // Additive server route — nuxt.config and app.vue are never touched.
+    out.push({ command: heredoc(`server/api/health.get.${ext}`, STUB_NUXT_HEALTH), note: "Checks your API is alive" });
+  } else if (sel.framework === "sveltekit") {
+    // Additive endpoint — svelte.config and +page files are never touched.
+    out.push({ command: heredoc(`src/routes/api/health/+server.${ext}`, STUB_SVELTE_HEALTH), note: "Checks your API is alive" });
+  } else if (sel.framework === "angular") {
+    // Folders only — environments use Angular's environment files and
+    // app.config is template-owned, so no stub is emitted here.
   } else if (sel.framework === "expo" || sel.framework === "react-native" || sel.framework === "ionic") {
     // Mobile: folders + one zero-import helper in a new path. No stubs into
     // template-owned files (layouts, tabs, native dirs) — those are never
     // overwritten, so SDK/template drift can't break the scaffold.
     out.push({ command: heredoc(`src/lib/env.${ext}`, ts ? STUB_ENV_MOBILE_TS : STUB_ENV_MOBILE_JS), note: "Reads env with clear errors" });
+  } else if (sel.framework === "tauri" || sel.framework === "electron" || sel.framework === "wails") {
+    // Desktop: frontend dirs + a Vite env helper (all three render a Vite
+    // React UI). Wails keeps its UI under frontend/ — match that layout.
+    const envPath = sel.framework === "wails" ? `frontend/src/lib/env.${ext}` : `src/lib/env.${ext}`;
+    out.push({ command: heredoc(envPath, ts ? STUB_ENV_VITE_TS : STUB_ENV_VITE_JS), note: "Reads env with clear errors" });
   }
   return out;
 }
@@ -225,6 +484,8 @@ interface OptionLike {
   notes: string[];
   commandsMobile?: string[];
   notesMobile?: string[];
+  commandsDesktop?: string[];
+  notesDesktop?: string[];
 }
 
 // Translate placeholder tokens in data files into real commands
@@ -277,22 +538,22 @@ function ciInstall(pm: PackageManagerId): { install: string; build: string; imag
       return {
         install: "npm ci",
         build: "npm run build",
-        image: "node:22",
-        setup: "      - uses: actions/setup-node@v4\n        with:\n          node-version: 22\n          cache: npm",
+        image: "node:24",
+        setup: "      - uses: actions/setup-node@v5\n        with:\n          node-version: 24\n          cache: npm",
       };
     case "yarn":
       return {
         install: "yarn install --frozen-lockfile",
         build: "yarn build",
-        image: "node:22",
-        setup: "      - uses: actions/setup-node@v4\n        with:\n          node-version: 22\n          cache: yarn",
+        image: "node:24",
+        setup: "      - uses: actions/setup-node@v5\n        with:\n          node-version: 24\n          cache: yarn",
       };
     case "pnpm":
       return {
         install: "pnpm install --frozen-lockfile",
         build: "pnpm build",
-        image: "node:22",
-        setup: "      - uses: pnpm/action-setup@v4\n        with:\n          version: 9\n      - uses: actions/setup-node@v4\n        with:\n          node-version: 22\n          cache: pnpm",
+        image: "node:24",
+        setup: "      - uses: pnpm/action-setup@v6\n        with:\n          version: 10\n      - uses: actions/setup-node@v5\n        with:\n          node-version: 24\n          cache: pnpm",
       };
     case "bun":
     default:
@@ -317,7 +578,7 @@ function githubCiFile(pm: PackageManagerId): string {
     "  build:",
     "    runs-on: ubuntu-latest",
     "    steps:",
-    "      - uses: actions/checkout@v4",
+    "      - uses: actions/checkout@v5",
     c.setup,
     `      - run: ${c.install}`,
     `      - run: ${c.build}`,
@@ -338,12 +599,13 @@ function gitlabCiFile(pm: PackageManagerId): string {
   ].join("\n");
 }
 
-function resolveToken(cmd: string, pm: PackageManagerId, language: string): string {
+function resolveToken(cmd: string, pm: PackageManagerId, language: string, dir = "my-app"): string {
   const t = pmCommands(pm);
   const ts = language === "typescript";
   if (cmd === "__CI_FILE__") return githubCiFile(pm);
   if (cmd === "__GITLAB_CI_FILE__") return gitlabCiFile(pm);
   return cmd
+    .replaceAll("__DIR__", dir)
     .replaceAll("__PM_CREATE__", t.create)
     .replaceAll("__ADD__", t.add)
     .replaceAll("__ADD_DEV__", t.addDev)
@@ -361,7 +623,18 @@ function resolveToken(cmd: string, pm: PackageManagerId, language: string): stri
     .replaceAll(
       "__NEXT_CREATE__",
       `${t.create} next-app@latest my-app ${ts ? "--ts" : "--js"} --tailwind --eslint --app --src-dir --import-alias "@/*" --use-${pm}`
-    );
+    )
+    .replaceAll(
+      "__ELECTRON_CREATE__",
+      `${t.pmx} create-electron-app@latest my-app --template=vite-${ts ? "typescript" : "javascript"}`
+    )
+    .replaceAll("__WAILS_INIT__", `wails init -n my-app -t react${ts ? "-ts" : ""}`);
+}
+
+// Folder the scaffold creates. One exception: bare React Native, whose name
+// doubles as the native module name and must be alphanumeric (no dashes).
+function projectDir(sel: WizardSelections): string {
+  return sel.platform === "mobile" && sel.framework === "react-native" ? "MyApp" : "my-app";
 }
 
 function tailwindCommands(pm: PackageManagerId, framework: string): { commands: string[]; notes: string[] } {
@@ -384,24 +657,55 @@ function tailwindCommands(pm: PackageManagerId, framework: string): { commands: 
 function devCommand(
   pm: PackageManagerId,
   platform: PlatformId,
-  framework: string
+  framework: string,
+  target: "android" | "ios"
 ): { command: string; note: string } {
   const t = pmCommands(pm);
   if (platform === "mobile") {
     if (framework === "expo")
-      return {
-        command: `${t.pmx} expo start`,
-        note: "Opens the dev server — scan the QR with Expo Go",
-      };
+      return target === "ios"
+        ? {
+            command: `${t.pmx} expo start`,
+            note: "Opens the dev server — scan the QR with Camera, or press i for the simulator (needs a Mac)",
+          }
+        : {
+            command: `${t.pmx} expo start`,
+            note: "Opens the dev server — scan the QR in Expo Go, or press a for the emulator",
+          };
     if (framework === "react-native")
-      return {
-        command: pm === "npm" ? "npm run android" : `${t.run} android`,
-        note: "Runs on the Android emulator (use ios for iPhone)",
-      };
+      return target === "ios"
+        ? {
+            command: pm === "npm" ? "npm run ios" : `${t.run} ios`,
+            note: "Runs on the iPhone simulator (needs macOS + Xcode)",
+          }
+        : {
+            command: pm === "npm" ? "npm run android" : `${t.run} android`,
+            note: "Runs on the Android emulator",
+          };
     if (framework === "ionic")
       return {
         command: "ionic serve",
-        note: "Serves your app in the browser (first time: npm i -g @ionic/cli)",
+        note:
+          target === "ios"
+            ? "Serves your iPhone app in the browser"
+            : "Serves your Android app in the browser",
+      };
+  }
+  if (platform === "desktop") {
+    if (framework === "tauri")
+      return {
+        command: pm === "npm" ? "npm run tauri dev" : `${t.run} tauri dev`,
+        note: "Opens your app in a desktop window",
+      };
+    if (framework === "electron")
+      return {
+        command: pm === "npm" ? "npm start" : `${t.run} start`,
+        note: "Opens your app in a desktop window",
+      };
+    if (framework === "wails")
+      return {
+        command: "wails dev",
+        note: "Opens your app in a desktop window",
       };
   }
   const cmd = pm === "npm" ? "npm run dev" : `${t.run} dev`;
@@ -434,6 +738,7 @@ export function assemble(selections: WizardSelections): BuildStep[] {
   const { language, framework, styling, packageManager: pm } = selections;
   const platform: PlatformId = selections.platform ?? "web";
   const catalog = catalogFor(platform);
+  const dir = projectDir(selections);
   const steps: BuildStep[] = [];
   const push = (section: string, command: string, note: string) => {
     if (!command) return;
@@ -447,11 +752,13 @@ export function assemble(selections: WizardSelections): BuildStep[] {
   const fw = frameworkCat?.options.find((o) => o.id === framework);
   if (fw) {
     fw.commands.forEach((raw, i) => {
-      const cmd = resolveToken(raw, pm, language);
+      const cmd = resolveToken(raw, pm, language, dir);
       let note = fw.notes[i] ?? "";
       // `cd` mid-script is where copy-paste setups die (ENOENT: no package.json).
-      // Pin the working directory expectation right where it changes.
-      if (cmd === "cd my-app") note = `${note} — stay in my-app below`;
+      // Pin the working directory expectation right where it changes — any
+      // plain `cd <dir>`, never a compound line (the NestJS scaffold cds back).
+      const cdMatch = /^cd ([A-Za-z0-9_-]+)$/.exec(cmd);
+      if (cdMatch) note = `${note} — stay in ${cdMatch[1]} below`;
       push("1 · Create your project", cmd, note);
     });
   }
@@ -460,16 +767,16 @@ export function assemble(selections: WizardSelections): BuildStep[] {
   const stylingCat = catalog.categories.find((c) => c.id === "styling");
   const st = stylingCat?.options.find((o) => o.id === styling);
   if (st) {
-    if (platform === "web" && styling === "tailwind") {
+    if (platform === "web" || platform === "desktop") {
       // Next.js already includes Tailwind — there is nothing to run, so emit
       // zero commands (never a fake "# ..." comment line in the copy output).
-      if (framework !== "nextjs") {
+      if (styling === "tailwind" && framework !== "nextjs") {
         const tw = tailwindCommands(pm, framework);
         tw.commands.forEach((cmd, i) => push("2 · Add styling", cmd, tw.notes[i] ?? ""));
       }
     } else {
       st.commands.forEach((raw, i) => {
-        const cmd = resolveToken(raw, pm, language);
+        const cmd = resolveToken(raw, pm, language, dir);
         if (cmd) push("2 · Add styling", cmd, st.notes[i] ?? "");
         else if (st.notes[i]) push("2 · Add styling", `# ${st.notes[i]}`, st.notes[i]);
       });
@@ -490,7 +797,7 @@ export function assemble(selections: WizardSelections): BuildStep[] {
           for (const s of expandStructure(selections)) push(`3 · ${group.label}`, s.command, s.note);
           return;
         }
-        push(`3 · ${group.label}`, resolveToken(raw, pm, language), toggle.notes[i] ?? "");
+        push(`3 · ${group.label}`, resolveToken(raw, pm, language, dir), toggle.notes[i] ?? "");
       });
     }
   }
@@ -531,15 +838,17 @@ export function assemble(selections: WizardSelections): BuildStep[] {
           return;
         }      // AI rules files are generated from the live selections (stack-aware),
         // not from static strings — same heredoc pattern as the CI file steps.
-        const cmd = AI_RULE_FILES[raw] ? aiRulesCommand(raw, selections) : resolveToken(raw, pm, language);
+        const cmd = AI_RULE_FILES[raw] ? aiRulesCommand(raw, selections) : resolveToken(raw, pm, language, dir);
         push(`${4 + idx} · ${group.label}`, cmd, notes[i] ?? "");
       });
     }
   });
 
-  // Keys step — one `touch` for every key the steps above asked for
-  // (Supabase URL, auth secrets, payment keys). Single step on purpose:
-  // one env file per project, never one command per service.
+  // Keys step — one env file with placeholders for every key the picks need
+  // (Supabase URL, auth secrets, DB connection, payment keys). Single step on
+  // purpose: one env file per project, never one command per service. The file
+  // is pre-filled (not a blank `touch`) so setup.sh leaves a documented .env
+  // showing each key, its format, and which dashboard it comes from.
   const backend = selections.addons.backend ?? "none";
   const database = selections.addons.database ?? "none";
   const auth = selections.addons.auth ?? "none";
@@ -549,16 +858,17 @@ export function assemble(selections: WizardSelections): BuildStep[] {
     .filter((n) => !Number.isNaN(n));
   let nextNo = (usedNumbers.length ? Math.max(...usedNumbers) : 3) + 1;
   const needsEnv =
-    database === "supabase" ||
-    database === "firebase" ||
+    database !== "none" ||
     auth !== "none" ||
-    (payments !== "none" && payments !== "lemonsqueezy");
+    payments !== "none";
   if (needsEnv) {
-    const envFile = framework === "nextjs" ? ".env.local" : ".env";
+    const envFile = envFileFor(framework);
+    const env = envBlocks(selections);
+    const who = env.services.length ? ` for ${env.services.join(" + ")}` : "";
     push(
       `${nextNo} · Save your keys`,
-      `touch ${envFile}`,
-      "Creates your env file. Never commit it."
+      [`cat > ${envFile} <<'EOF'`, ...env.lines, "EOF"].join("\n"),
+      `Creates ${envFile} pre-filled${who}. Paste values from each dashboard, restart dev server. Never commit it.`
     );
     nextNo += 1;
   }
@@ -577,7 +887,7 @@ export function assemble(selections: WizardSelections): BuildStep[] {
   }
 
   // Final — run it
-  const dev = devCommand(pm, platform, framework);
+  const dev = devCommand(pm, platform, framework, selections.target ?? "android");
   push(`${nextNo} · See it running`, dev.command, dev.note);
   push(`${nextNo} · See it running`, dev.command, dev.note);
 
@@ -593,6 +903,16 @@ function needsAutoYes(cmd: string): boolean {
   return /(create|init|nuxi|@angular\/cli|@nestjs\/cli new)/i.test(cmd);
 }
 
+// Folder the scaffold creates — the first plain `cd <dir>` step names it
+// (my-app everywhere, MyApp for bare React Native). Used in the resume hint.
+function scaffoldDir(setup: BuildStep[]): string {
+  for (const s of setup) {
+    const m = /^cd ([A-Za-z0-9_-]+)$/.exec(s.command);
+    if (m) return m[1];
+  }
+  return "my-app";
+}
+
 export function buildScript(steps: BuildStep[]): string {
   const setup = steps.filter((s) => !RUN_SECTIONS.some((r) => s.section.includes(r)));
   const run = steps.filter((s) => RUN_SECTIONS.some((r) => s.section.includes(r)));
@@ -605,7 +925,7 @@ export function buildScript(steps: BuildStep[]): string {
     "# Usage: save as setup.sh, then run: bash setup.sh",
     "# Prompts are auto-answered with defaults. The final step stays manual (it keeps running).",
     '# If it pauses on "Resolving", it is downloading — give it a few minutes.',
-    "# If you stopped it halfway, delete the partial folder first: rm -rf my-app",
+    `# If you stopped it halfway, delete the partial folder first: rm -rf ${scaffoldDir(setup)}`,
     "set -e",
     "",
   ];
@@ -665,26 +985,39 @@ function aiRulesBody(sel: WizardSelections): string {
     const val = sel.addons[gid] ?? "none";
     if (g && val !== "none") extras.push(`${g.label}: ${labelOf(g.options ?? [], val)}`);
   }
-  const envFile = sel.framework === "nextjs" ? ".env.local" : ".env";
-  const dev = devCommand(pm, platform, sel.framework);
+  const envFile = envFileFor(sel.framework);
+  const target: "android" | "ios" = sel.target ?? "android";
+  const dev = devCommand(pm, platform, sel.framework, target);
   const buildCmd =
     platform === "mobile"
       ? sel.framework === "expo"
-        ? `${t.pmx} eas build`
+        ? `${t.pmx} eas build -p ${target}`
         : sel.framework === "react-native"
-          ? "cd android && ./gradlew assembleRelease"
+          ? target === "ios"
+            ? `${t.pmx} react-native run-ios --configuration Release`
+            : "cd android && ./gradlew assembleRelease"
           : "ionic build"
-      : pm === "npm"
-        ? "npm run build"
-        : pm === "yarn"
-          ? "yarn build"
-          : `${t.run} build`;
+      : platform === "desktop"
+        ? sel.framework === "tauri"
+          ? pm === "npm"
+            ? "npm run tauri build"
+            : `${t.run} tauri build`
+          : sel.framework === "electron"
+            ? pm === "npm"
+              ? "npm run make"
+              : `${t.run} make`
+            : "wails build"
+        : pm === "npm"
+          ? "npm run build"
+          : pm === "yarn"
+            ? "yarn build"
+            : `${t.run} build`;
   const lines = [
     "# AI rules (generated by StackWizard)",
     "## Stack",
-    `- ${fw} + ${lang} + ${styling}, ${pm}`,
+    `- ${fw} + ${lang} + ${styling}, ${pm}${platform === "mobile" ? ` · Target: ${target === "ios" ? "iPhone" : "Android"}` : ""}`,
     ...(extras.length ? [`- ${extras.join(" · ")}`] : []),
-    "## Commands (run inside my-app)",
+    "## Commands (run inside " + projectDir(sel) + ")",
     `- Dev: ${dev.command}`,
     `- Build: ${buildCmd}`,
     ...(sel.toggles["eslint-prettier"] ? [`- Lint: ${t.pmx} eslint .`] : []),
@@ -699,9 +1032,9 @@ function aiRulesBody(sel: WizardSelections): string {
     "- Validate all user input and API responses before use",
     "- Wrap data-fetching in try/catch with a user-visible fallback state",
     "- Never leave a promise unhandled; never swallow errors silently",
-    platform === "web"
-      ? "- Use the framework's error boundary (Next.js error.tsx, React ErrorBoundary)"
-      : "- Use an error boundary around your navigation screens",
+    platform === "mobile"
+      ? "- Use an error boundary around your navigation screens"
+      : "- Use the framework's error boundary (Next.js error.tsx, React ErrorBoundary)",
   ];
   return lines.join("\n");
 }
@@ -714,6 +1047,7 @@ function aiRulesCommand(token: string, sel: WizardSelections): string {
 export function defaultSelections(): WizardSelections {
   return {
     platform: "web",
+    target: "android",
     language: "typescript",
     framework: "nextjs",
     styling: "tailwind",
@@ -813,6 +1147,39 @@ export const PRESETS: { id: string; label: string; detail: string; selections: W
         auth: "supabase-auth",
         payments: "revenuecat",
         testing: "maestro",
+        cicd: "github-actions",
+      },
+    },
+  },
+  {
+    id: "minimal-tauri",
+    label: "Simplest desktop app",
+    detail: "Tauri + plain CSS, tiny binary",
+    selections: {
+      ...defaultSelections(),
+      platform: "desktop",
+      framework: "tauri",
+      styling: "plain-css",
+      toggles: { "eslint-prettier": false, husky: false, structure: true },
+    },
+  },
+  {
+    id: "tauri-shop",
+    label: "Tauri shop starter",
+    detail: "Login + database + payments",
+    selections: {
+      ...defaultSelections(),
+      platform: "desktop",
+      framework: "tauri",
+      styling: "tailwind",
+      toggles: { "eslint-prettier": true, husky: true, structure: true },
+      addons: {
+        backend: "none",
+        database: "supabase",
+        orm: "none",
+        auth: "supabase-auth",
+        payments: "stripe",
+        testing: "vitest",
         cicd: "github-actions",
       },
     },

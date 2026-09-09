@@ -2,6 +2,7 @@ import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
 import HowItWorks from "@/components/HowItWorks";
 import Wizard from "@/components/Wizard";
+import Guide from "@/components/Guide";
 import Features from "@/components/Features";
 import Faq from "@/components/Faq";
 import Closing from "@/components/Closing";
@@ -20,6 +21,7 @@ export default function Home() {
         <Hero />
         <HowItWorks />
         <Wizard />
+        <Guide />
         <Features />
         <Faq />
         <Closing />

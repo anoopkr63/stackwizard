@@ -30,6 +30,9 @@ export default function Nav() {
             <Link href="#build" className="text-muted transition-colors hover:text-ink">
               Build my stack
             </Link>
+            <Link href="#guide" className="text-muted transition-colors hover:text-ink">
+              Guide
+            </Link>
             <Link href="#examples" className="text-muted transition-colors hover:text-ink">
               Examples
             </Link>

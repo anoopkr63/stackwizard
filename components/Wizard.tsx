@@ -69,13 +69,14 @@ export default function Wizard() {
   const ormHidden = ["none", "supabase", "firebase"].includes(sel.addons.database);
 
   const platform: PlatformId = sel.platform ?? "web";
+  const platformLabel = platform === "mobile" ? "Mobile" : platform === "desktop" ? "Desktop" : "Web";
 
   function switchPlatform(p: PlatformId) {
     setSel((prev) => {
       const next: WizardSelections = {
         ...prev,
         platform: p,
-        framework: p === "mobile" ? "expo" : "nextjs",
+        framework: p === "mobile" ? "expo" : p === "desktop" ? "tauri" : "nextjs",
         styling: p === "mobile" ? "nativewind" : "tailwind",
         addons: { ...prev.addons },
       };
@@ -107,7 +108,9 @@ export default function Wizard() {
       gaps.push(
         platform === "mobile"
           ? "Login: wire the provider SDK into your navigation."
-          : "Login: add callback route + session check."
+          : platform === "desktop"
+            ? "Login: wire the provider SDK into your app window."
+            : "Login: add callback route + session check."
       );
     }
     const pay = sel.addons.payments ?? "none";
@@ -154,7 +157,7 @@ export default function Wizard() {
     <section id="build" className="scroll-mt-20 border-y border-line bg-parchment">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
         <Reveal>
-          <SectionEyebrow>Build my stack · {platform === "mobile" ? "Mobile" : "Web"}</SectionEyebrow>
+          <SectionEyebrow>Build my stack · {platformLabel}</SectionEyebrow>
           <SectionTitle>Answer the questions. Watch the commands appear.</SectionTitle>
           <SectionSub>
             Updates live as you pick.
@@ -198,7 +201,7 @@ export default function Wizard() {
                 Platform
               </legend>
               <div className="grid grid-cols-3 gap-2" role="group" aria-label="Platforms">
-                {(["web", "mobile"] as PlatformId[]).map((p) => {
+                {(["web", "mobile", "desktop"] as PlatformId[]).map((p) => {
                   const active = platform === p;
                   return (
                     <button
@@ -212,24 +215,54 @@ export default function Wizard() {
                           : "border-line bg-white/60 text-muted hover:border-ink/40 hover:text-ink"
                       }`}
                     >
-                      {p === "web" ? "Web" : "Mobile"}
+                      {p === "web" ? "Web" : p === "mobile" ? "Mobile" : "Desktop"}
                       <span className="block text-xs font-normal">live</span>
                     </button>
                   );
                 })}
-                <div
-                  aria-disabled="true"
-                  className="rounded-xl border border-line bg-white/60 p-3 text-center text-sm font-semibold text-muted"
-                >
-                  Desktop
-                  <span className="block text-xs font-normal">coming soon</span>
-                </div>
               </div>
             </fieldset>
 
+            {platform === "mobile" && (
+              <fieldset>
+                <legend className="display mb-3 text-lg font-semibold">
+                  Target — pick your phone{" "}
+                  <span className="ml-1 rounded-full bg-ember px-2.5 py-0.5 align-middle text-xs font-bold uppercase tracking-wider text-white">
+                    Required
+                  </span>
+                </legend>
+                <div className="grid grid-cols-2 gap-2" role="group" aria-label="Target phone">
+                  {(
+                    [
+                      { id: "android", label: "Android", sub: "most users" },
+                      { id: "ios", label: "iPhone", sub: "needs a Mac" },
+                    ] as const
+                  ).map((o) => {
+                    const active = (sel.target ?? "android") === o.id;
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        onClick={() => set("target", o.id)}
+                        aria-pressed={active}
+                        className={`rounded-xl border p-3 text-center text-sm font-semibold transition-colors ${
+                          active
+                            ? "border-ink bg-white ring-1 ring-ink"
+                            : "border-line bg-white/60 text-muted hover:border-ink/40 hover:text-ink"
+                        }`}
+                      >
+                        {o.label}
+                        <span className="block text-xs font-normal">{o.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
+
             <fieldset>
               <legend className="display mb-3 text-lg font-semibold">
-                {platform === "mobile" ? "Core — what the app is made of" : "Core — what the site is made of"}
+                {platform === "web" ? "Core — what the site is made of" : "Core — what the app is made of"}
               </legend>
               <div className="grid gap-3 sm:grid-cols-2">
                 {["language", "framework", "styling", "packageManager"].map((id) => {

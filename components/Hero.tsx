@@ -1,6 +1,7 @@
 import Link from "next/link";
 import web from "@/data/web.json";
 import mobile from "@/data/mobile.json";
+import desktop from "@/data/desktop.json";
 import ChipScatter from "./ChipScatter";
 import TwinkleField from "./TwinkleField";
 
@@ -9,6 +10,7 @@ const TERMINAL_PREVIEW = ["npm create next-app@latest my-app", "cd my-app", "npm
 const FRAMEWORKS = [
   ...(web.categories.find((c) => c.id === "framework")?.options.map((o) => o.label) ?? []),
   ...(mobile.categories.find((c) => c.id === "framework")?.options.map((o) => o.label) ?? []),
+  ...(desktop.categories.find((c) => c.id === "framework")?.options.map((o) => o.label) ?? []),
 ];
 
 export default function Hero() {
@@ -30,7 +32,7 @@ export default function Hero() {
           className="anim-hero inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold uppercase tracking-widest text-muted"
           style={{ animationDelay: "0ms" }}
         >
-          Free tool for developers · Web + Mobile
+          Free tool for developers · Web + Mobile + Desktop
         </p>
         <h1
           className="anim-hero display mx-auto mt-6 max-w-4xl text-[clamp(2.6rem,7vw,4.75rem)] font-bold leading-[1.04]"

@@ -59,7 +59,7 @@ export default function Footer() {
                 <div>
                   <p className="font-semibold uppercase tracking-widest text-white/70">Coming next</p>
                   <ul className="mt-2 space-y-1.5">
-                    <li><span>Desktop — Electron, Tauri</span></li>
+                    <li><span>More desktop templates</span></li>
                     <li><span>More mobile templates</span></li>
                     <li><span>Docker + deploy guides</span></li>
                   </ul>

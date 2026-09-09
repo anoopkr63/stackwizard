@@ -9,7 +9,7 @@
           "id": "eslint-prettier",
           "label": "ESLint + Prettier",
           "help": "Finds mistakes, formats code.",
-          "commands": ["__ADD_DEV__ eslint prettier eslint-config-prettier", "__PMX__ eslint --init"],
+          "commands": ["__ADD_DEV__ eslint prettier eslint-config-prettier", "__PMX__ @eslint/create-config@latest"],
           "notes": ["Adds checker + formatter", "Creates settings (accept defaults)"]
         },
         {
@@ -23,8 +23,8 @@
           "id": "structure",
           "label": "Production folders",
           "help": "Organised 2026 layout.",
-          "platforms": ["web", "mobile"],
-          "frameworks": ["nextjs", "react-vite", "expo", "react-native", "ionic"],
+          "platforms": ["web", "mobile", "desktop"],
+          "frameworks": ["nextjs", "react-vite", "vue", "nuxt", "sveltekit", "angular", "solid", "expo", "react-native", "ionic", "tauri", "electron", "wails"],
           "commands": ["__STRUCTURE__"],
           "notes": []
         }
@@ -47,8 +47,8 @@
           "id": "nestjs",
           "label": "NestJS",
           "hint": "Structured",
-          "commands": ["cd .. && __PMX__ @nestjs/cli new server && cd my-app"],
-          "notes": ["Creates server/ next door, then returns to my-app"]
+          "commands": ["cd .. && __PMX__ @nestjs/cli new server && cd __DIR__"],
+          "notes": ["Creates server/ next door, then returns to your project"]
         },
         {
           "id": "fastapi",
@@ -97,21 +97,21 @@
           "id": "postgres",
           "label": "PostgreSQL",
           "hint": "Popular",
-          "commands": ["docker run --name stackwizard-db -e POSTGRES_PASSWORD=dev -p 5432:5432 -d postgres:16"],
+          "commands": ["docker run --name stackwizard-db -e POSTGRES_PASSWORD=dev -p 5432:5432 -d postgres:18"],
           "notes": ["Starts Postgres via Docker (password: dev)"]
         },
         {
           "id": "mysql",
           "label": "MySQL",
           "hint": "Classic",
-          "commands": ["docker run --name stackwizard-db -e MYSQL_ROOT_PASSWORD=dev -p 3306:3306 -d mysql:8"],
+          "commands": ["docker run --name stackwizard-db -e MYSQL_ROOT_PASSWORD=dev -p 3306:3306 -d mysql:8.4"],
           "notes": ["Starts MySQL via Docker (password: dev)"]
         },
         {
           "id": "mongodb",
           "label": "MongoDB",
           "hint": "Documents",
-          "commands": ["docker run --name stackwizard-db -p 27017:27017 -d mongo:7"],
+          "commands": ["docker run --name stackwizard-db -p 27017:27017 -d mongo:8"],
           "notes": ["Starts MongoDB via Docker"]
         },
         {
@@ -194,6 +194,7 @@
           "id": "clerk",
           "label": "Clerk",
           "hint": "Easiest",
+          "platforms": ["web", "mobile"],
           "commands": ["__ADD__ @clerk/nextjs"],
           "notes": ["Adds Clerk. Keys go in .env."],
           "commandsMobile": ["__ADD__ @clerk/clerk-expo"],
@@ -203,6 +204,7 @@
           "id": "auth0",
           "label": "Auth0",
           "hint": "Enterprise",
+          "platforms": ["web", "mobile"],
           "commands": ["__ADD__ @auth0/nextjs-auth0"],
           "notes": ["Adds Auth0. Keys go in .env."],
           "commandsMobile": ["__ADD__ react-native-auth0"],
@@ -245,15 +247,15 @@
           "id": "paypal",
           "label": "PayPal",
           "hint": "Trusted",
-          "platforms": ["web"],
-          "commands": ["__ADD__ @paypal/checkout-server-sdk @paypal/paypal-js"],
+          "platforms": ["web", "desktop"],
+          "commands": ["__ADD__ @paypal/paypal-server-sdk @paypal/paypal-js"],
           "notes": ["Adds PayPal. Sandbox keys needed."]
         },
         {
           "id": "paddle",
           "label": "Paddle",
           "hint": "Tax handled",
-          "platforms": ["web"],
+          "platforms": ["web", "desktop"],
           "commands": ["__ADD__ @paddle/paddle-js"],
           "notes": ["Adds Paddle (handles sales tax)."]
         },
@@ -261,7 +263,7 @@
           "id": "lemonsqueezy",
           "label": "Lemon Squeezy",
           "hint": "Simplest",
-          "platforms": ["web"],
+          "platforms": ["web", "desktop"],
           "commands": [],
           "notes": ["No code needed — create a store."]
         },
@@ -308,7 +310,7 @@
           "id": "playwright",
           "label": "Playwright",
           "hint": "Real browser",
-          "platforms": ["web"],
+          "platforms": ["web", "desktop"],
           "commands": ["__ADD_DEV__ @playwright/test", "__PMX__ playwright install"],
           "notes": ["Tests your site in a real browser", "Downloads browsers (one-time)"]
         },

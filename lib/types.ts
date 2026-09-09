@@ -11,9 +11,11 @@ export interface StackOption {
   hideWhen?: Record<string, string[]>;
   /** Platforms this option is offered on. Omitted = all platforms. */
   platforms?: string[];
-  /** Per-platform command/note overrides (used on mobile when present). */
+  /** Per-platform command/note overrides (used on mobile/desktop when present). */
   commandsMobile?: string[];
   notesMobile?: string[];
+  commandsDesktop?: string[];
+  notesDesktop?: string[];
 }
 
 export interface Category {
@@ -45,10 +47,12 @@ export interface AddonGroup {
 
 export type PackageManagerId = "npm" | "yarn" | "pnpm" | "bun";
 export type LanguageId = "typescript" | "javascript";
-export type PlatformId = "web" | "mobile";
+export type PlatformId = "web" | "mobile" | "desktop";
 
 export interface WizardSelections {
   platform: PlatformId;
+  /** Mobile only: which phone to ship to first. Always one of the two — never none. */
+  target: "android" | "ios";
   language: LanguageId;
   framework: string;
   styling: string;

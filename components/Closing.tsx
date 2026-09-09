@@ -2,10 +2,11 @@ import Link from "next/link";
 import Reveal from "./Reveal";
 import TwinkleField from "./TwinkleField";
 
-const STATS: [string, string][] = [
-  ["10", "frameworks"],
-  ["7", "add-on groups"],
-  ["5", "one-click presets"],
+const TAKEAWAYS = [
+  "Terminal commands",
+  "setup.sh in one click",
+  "Shareable link",
+  "AI rules included",
 ];
 
 export default function Closing() {
@@ -32,27 +33,31 @@ export default function Closing() {
         </div>
         <div className="relative mx-auto max-w-6xl px-4 py-14 text-center sm:px-6 lg:py-20">
           <Reveal>
-            <h2 className="display mx-auto max-w-2xl text-3xl font-semibold leading-tight sm:text-4xl">
-              You&apos;re the architect.
-              <br />
-              We&apos;re the <span className="text-ember">instructions.</span>
+            <p className="inline-block rounded-full border border-white/20 px-3 py-1 font-mono text-xs uppercase tracking-widest text-white/70">
+              Ready when you are
+            </p>
+            <h2 className="display mx-auto mt-4 max-w-2xl text-3xl font-semibold leading-tight sm:text-4xl">
+              Copy. Paste. <span className="text-ember">Running.</span>
             </h2>
+            <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-white/70">
+              Every pick becomes terminal commands, a one-file setup script, and a link you can share.
+            </p>
+            <ul className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-2">
+              {TAKEAWAYS.map((t) => (
+                <li
+                  key={t}
+                  className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm font-medium text-cream"
+                >
+                  {t}
+                </li>
+              ))}
+            </ul>
             <Link
               href="#build"
-              className="anim-cta-glow mt-7 inline-block rounded-full bg-ember px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-ember-deep"
+              className="anim-cta-glow mt-8 inline-block rounded-full bg-ember px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-ember-deep"
             >
               Build my stack now
             </Link>
-          </Reveal>
-          <Reveal delay={120}>
-            <div className="mx-auto mt-12 grid max-w-3xl grid-cols-3 gap-4">
-              {STATS.map(([n, label]) => (
-                <div key={label}>
-                  <p className="display text-5xl font-medium sm:text-6xl">{n}</p>
-                  <p className="mt-1 font-mono text-sm text-white/60">{label}</p>
-                </div>
-              ))}
-            </div>
           </Reveal>
         </div>
       </section>

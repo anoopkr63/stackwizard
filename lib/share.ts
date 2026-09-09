@@ -18,8 +18,8 @@ export function decodeSelections(raw: string | null): WizardSelections | null {
     const parsed = JSON.parse(json);
     if (!parsed || typeof parsed !== "object") return null;
     if (!parsed.language || !parsed.framework || !parsed.packageManager) return null;
-    // Links shared before the mobile wizard existed have no platform — web it is.
-    if (parsed.platform !== "mobile" && parsed.platform !== "web") parsed.platform = "web";
+    // Links shared before the mobile/desktop wizards existed have no platform — web it is.
+    if (parsed.platform !== "mobile" && parsed.platform !== "desktop" && parsed.platform !== "web") parsed.platform = "web";
     return parsed as WizardSelections;
   } catch {
     return null;
