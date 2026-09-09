@@ -105,8 +105,10 @@ export default function Footer() {
                 <div>
                   <p className="font-semibold uppercase tracking-widest text-white/70">Project</p>
                   <ul className="mt-2 space-y-1.5">
+                    <li><Link href="/contact" className="transition-opacity hover:opacity-75 hover:underline">Contact</Link></li>
+                    <li><Link href="/privacy" className="transition-opacity hover:opacity-75 hover:underline">Privacy</Link></li>
+                    <li><Link href="/terms" className="transition-opacity hover:opacity-75 hover:underline">Terms</Link></li>
                     <li><Link href="#top" className="transition-opacity hover:opacity-75 hover:underline">Back to top</Link></li>
-                    <li><span>Free tool · no account</span></li>
                   </ul>
                 </div>
               </div>
@@ -114,8 +116,13 @@ export default function Footer() {
           </div>
         </div>
       </Reveal>
-      <p className="mx-auto mt-4 max-w-6xl text-xs text-muted">
-        © {new Date().getFullYear()} StackWizard.
+      <p className="mx-auto mt-4 flex max-w-6xl flex-wrap items-center justify-between gap-2 text-xs text-muted">
+        <span>© {new Date().getFullYear()} StackWizard. Free tool · no account.</span>
+        <span className="flex gap-4">
+          <Link href="/contact" className="hover:underline">Contact</Link>
+          <Link href="/privacy" className="hover:underline">Privacy</Link>
+          <Link href="/terms" className="hover:underline">Terms</Link>
+        </span>
       </p>
     </footer>
   );

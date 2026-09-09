@@ -1,0 +1,4 @@
+/* StackWizard */
+Site: StackWizard
+Purpose: Plain-language setup steps for common project stacks.
+Contact: anoopkr6300@gmail.com

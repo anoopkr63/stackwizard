@@ -19,7 +19,7 @@ export default function Site() {
       <ScrollProgress />
       <IntroLoader />
       <Nav />
-      <main>
+      <main id="main">
         <Hero />
         <HowItWorks />
         <Wizard />
