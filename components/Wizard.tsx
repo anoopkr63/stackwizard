@@ -43,6 +43,9 @@ export default function Wizard() {
     const params = new URLSearchParams(window.location.search);
     const decoded = decodeSelections(params.get("s"));
     if (decoded) {
+      // Mount-only client init: window doesn't exist during SSR, so this
+      // can't move into a state initializer without a hydration mismatch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSel({ ...defaultSelections(), ...decoded });
       setLoadedFromLink(true);
     }
@@ -125,7 +128,7 @@ export default function Wizard() {
       );
     }
     return gaps;
-  }, [sel]);
+  }, [sel, platform]);
 
   async function writeClipboard(text: string) {
     try {
@@ -458,15 +461,22 @@ export default function Wizard() {
                 aria-live="polite"
                 aria-label="Generated terminal commands"
               >
-                {steps.map((s, i) => (
+                {steps.map((s, i) => {
+                  const extra = s.command.includes("\n") ? s.command.split("\n").length - 1 : 0;
+                  return (
                   <div key={`${s.command}-${i}`} className="group flex items-start gap-1">
                     <p className={`flex-1 ${s.command.startsWith("#") ? "text-white/50" : "whitespace-pre-wrap"}`}>
-                      {!s.command.startsWith("#") && !s.command.includes("\n") && (
+                      {!s.command.startsWith("#") && !extra && (
                         <span aria-hidden="true" className="mr-2 select-none text-ember">
                           $
                         </span>
                       )}
-                      {s.command}
+                      {extra ? s.command.split("\n")[0] : s.command}
+                      {extra > 0 && (
+                        <span className="block text-xs text-white/40">
+                          … {extra} more lines — pastes as one block
+                        </span>
+                      )}
                     </p>
                     {!s.command.startsWith("#") && (
                       <button
@@ -480,7 +490,8 @@ export default function Wizard() {
                       </button>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

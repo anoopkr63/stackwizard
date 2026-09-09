@@ -17,7 +17,7 @@
           "label": "Husky check before save",
           "help": "Blocks messy commits.",
           "commands": ["__ADD_DEV__ husky", "__PMX__ husky init"],
-          "notes": ["Adds Husky", "Checks code before every commit"]
+          "notes": ["Adds a pre-commit check", "Stops messy commits before they save"]
         },
         {
           "id": "structure",
@@ -430,7 +430,7 @@
           "label": "shadcn/ui",
           "hint": "Components done right",
           "commands": ["npx -y skills add shadcn/ui --skill shadcn -y"],
-          "notes": ["Installs shadcn Skill"]
+          "notes": ["Teaches your AI assistant shadcn components"]
         },
         {
           "id": "webapp-testing",
@@ -472,14 +472,14 @@
           "label": "Document skills",
           "hint": "PDF + Office files",
           "commands": ["npx -y skills add anthropics/skills --skill pdf --skill docx --skill pptx --skill xlsx -y"],
-          "notes": ["Installs Document Skills"]
+          "notes": ["Teaches your AI assistant PDF + Office files"]
         },
         {
           "id": "skill-creator",
           "label": "Skill creator",
           "hint": "Make your own",
           "commands": ["npx -y skills add anthropics/skills --skill skill-creator -y"],
-          "notes": ["Installs Skill Creator"]
+          "notes": ["Teaches your AI assistant to make new skills"]
         }
       ]
     }

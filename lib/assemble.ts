@@ -1,4 +1,4 @@
-import type { BuildStep, PackageManagerId, PlatformId, StackOption, WizardSelections } from "./types";
+import type { BuildStep, PackageManagerId, PlatformId, WizardSelections } from "./types";
 import web from "@/data/web.json";
 import mobile from "@/data/mobile.json";
 import desktop from "@/data/desktop.json";
@@ -904,7 +904,6 @@ export function assemble(selections: WizardSelections): BuildStep[] {
 
   // Final — run it
   const dev = devCommand(pm, platform, framework, selections.target ?? "android");
-  push(`${nextNo} · See it running`, dev.command, dev.note);
   push(`${nextNo} · See it running`, dev.command, dev.note);
 
   return mergeInstallSteps(steps);

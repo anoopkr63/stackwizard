@@ -19,6 +19,9 @@ export default function IntroLoader() {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if (sessionStorage.getItem("sw-intro-seen")) return;
+    // Mount-only client init: window/sessionStorage don't exist during SSR,
+    // so this can't move into a state initializer without a hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisible(true);
     const phraseTimer = window.setInterval(
       () => setPhrase((p) => (p + 1) % PHRASES.length),

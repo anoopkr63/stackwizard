@@ -1,3 +1,19 @@
+# StackWizard — pick your stack, get the exact setup steps
+
+## Setup & run (this project)
+
+```bash
+bun install
+bun dev      # http://localhost:3000
+bun run build
+bun start
+bun run lint
+```
+
+Env (optional): copy `.env.example` to `.env` to set `NEXT_PUBLIC_SITE_URL` (used only for the sitemap canonical URL).
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
