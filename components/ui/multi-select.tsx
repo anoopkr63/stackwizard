@@ -26,12 +26,14 @@ export default function FieldMultiSelect({
   value,
   onChange,
   options,
+  placeholder,
 }: {
   id: string;
   label: string;
   value: string[];
   onChange: (value: string[]) => void;
   options: MultiOption[];
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -57,7 +59,7 @@ export default function FieldMultiSelect({
 
   const summary =
     value.length === 0
-      ? "No AI skills"
+      ? null
       : value.length === 1
         ? (options.find((o) => o.id === value[0])?.label ?? value[0])
         : `${value.length} skills selected`;
@@ -71,10 +73,10 @@ export default function FieldMultiSelect({
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => setOpen((v) => !v)}
-        className="select-trigger flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-ink/15 bg-white px-3.5 text-[15px] font-medium text-ink transition-colors hover:border-ink/35"
+        className="select-trigger flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-ink/15 bg-white px-3.5 py-2 text-left text-[15px] font-medium text-ink transition-colors hover:border-ink/35"
       >
-        <span className="min-w-0 truncate">
-          {summary}
+        <span className="min-w-0 flex-1">
+          {summary ?? <span className="font-normal text-muted">{placeholder ?? "Select…"}</span>}
           {value.length === 1 && options.find((o) => o.id === value[0])?.hint ? (
             <span className="font-normal text-muted">
               {" "}

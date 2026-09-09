@@ -51,10 +51,15 @@ export type PlatformId = "web" | "mobile" | "desktop";
 
 export interface WizardSelections {
   platform: PlatformId;
+  /** Folder the scaffold creates (sanitized at use — see sanitizeAppName). */
+  appName: string;
   /** Mobile only: which phone to ship to first. Always one of the two — never none. */
   target: "android" | "ios";
-  language: LanguageId;
+  /** Blank until picked — the core dropdowns start empty. */
+  language: string;
+  /** Blank until picked — no commands generate without one. */
   framework: string;
+  /** Blank until picked. */
   styling: string;
   packageManager: PackageManagerId;
   toggles: Record<string, boolean>;

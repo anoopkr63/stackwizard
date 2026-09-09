@@ -88,8 +88,8 @@ function envBlocks(sel: WizardSelections): { lines: string[]; services: string[]
   };
   const database = live("database", sel.addons.database ?? "none") ? sel.addons.database! : "none";
   const auth = live("auth", sel.addons.auth ?? "none") ? sel.addons.auth! : "none";
-  const payments = sel.addons.payments ?? "none";
-  const orm = sel.addons.orm ?? "none";
+  const payments = sel.addons.payments || "none";
+  const orm = sel.addons.orm || "none";
 
   const serverOnlyNote =
     PUB && PUB !== ""
@@ -612,7 +612,11 @@ function resolveToken(cmd: string, pm: PackageManagerId, language: string, dir =
   const ts = language === "typescript";
   if (cmd === "__CI_FILE__") return githubCiFile(pm);
   if (cmd === "__GITLAB_CI_FILE__") return gitlabCiFile(pm);
-  return cmd
+  // Data files name the scaffold folder literally (cd my-app, init MyApp) —
+  // rewrite those first, before tokens embed dir below (dir itself may
+  // contain "my-app", e.g. my-app-2 — a later pass would double-rewrite it).
+  const named = cmd.replaceAll("my-app", dir).replaceAll("MyApp", dir);
+  return named
     .replaceAll("__DIR__", dir)
     .replaceAll("__PM_CREATE__", t.create)
     .replaceAll("__ADD__", t.add)
@@ -622,27 +626,43 @@ function resolveToken(cmd: string, pm: PackageManagerId, language: string, dir =
     .replaceAll("__PM__", pm)
     .replaceAll(
       "__VITE_CREATE__",
-      `${t.create} vite@latest my-app -- --template ${ts ? "react-ts" : "react"}`
+      `${t.create} vite@latest ${dir} -- --template ${ts ? "react-ts" : "react"}`
     )
     .replaceAll(
       "__VITE_SOLID_CREATE__",
-      `${t.create} vite@latest my-app -- --template ${ts ? "solid-ts" : "solid"}`
+      `${t.create} vite@latest ${dir} -- --template ${ts ? "solid-ts" : "solid"}`
     )
     .replaceAll(
       "__NEXT_CREATE__",
-      `${t.create} next-app@latest my-app ${ts ? "--ts" : "--js"} --tailwind --eslint --app --src-dir --import-alias "@/*" --use-${pm}`
+      `${t.create} next-app@latest ${dir} ${ts ? "--ts" : "--js"} --tailwind --eslint --app --src-dir --import-alias "@/*" --use-${pm}`
     )
     .replaceAll(
       "__ELECTRON_CREATE__",
-      `${t.pmx} create-electron-app@latest my-app --template=vite-${ts ? "typescript" : "javascript"}`
+      `${t.pmx} create-electron-app@latest ${dir} --template=vite-${ts ? "typescript" : "javascript"}`
     )
-    .replaceAll("__WAILS_INIT__", `wails init -n my-app -t react${ts ? "-ts" : ""}`);
+    .replaceAll("__WAILS_INIT__", `wails init -n ${dir} -t react${ts ? "-ts" : ""}`);
 }
 
-// Folder the scaffold creates. One exception: bare React Native, whose name
-// doubles as the native module name and must be alphanumeric (no dashes).
-function projectDir(sel: WizardSelections): string {
-  return sel.platform === "mobile" && sel.framework === "react-native" ? "MyApp" : "my-app";
+// Folder the scaffold creates, from the user's app name. Slugs to
+// lowercase-dashes; falls back to my-app on empty/garbage input. One
+// exception: bare React Native, whose name doubles as the native module
+// name and must be alphanumeric — "shop app" becomes Shopapp.
+export function sanitizeAppName(
+  raw: string | undefined,
+  sel: Pick<WizardSelections, "platform" | "framework">
+): string {
+  const base = (raw ?? "").trim().slice(0, 60) || "my-app";
+  if (sel.platform === "mobile" && sel.framework === "react-native") {
+    const alpha = base.replace(/[^A-Za-z0-9]/g, "") || "MyApp";
+    const fixed = /^[A-Za-z]/.test(alpha) ? alpha : `App${alpha}`;
+    return fixed.charAt(0).toUpperCase() + fixed.slice(1);
+  }
+  const slug = base
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return slug || "my-app";
 }
 
 function tailwindCommands(pm: PackageManagerId, framework: string): { commands: string[]; notes: string[] } {
@@ -745,8 +765,18 @@ function mergeInstallSteps(steps: BuildStep[]): BuildStep[] {
 export function assemble(selections: WizardSelections): BuildStep[] {
   const { language, framework, styling, packageManager: pm } = selections;
   const platform: PlatformId = selections.platform ?? "web";
+  // Nothing picked yet — show a prompt, not half a setup.
+  if (!framework) {
+    return [
+      {
+        section: "Start",
+        command: "# Answer the questions to generate your commands",
+        note: "Pick a framework above — your commands appear here as you answer.",
+      },
+    ];
+  }
   const catalog = catalogFor(platform);
-  const dir = projectDir(selections);
+  const dir = sanitizeAppName(selections.appName, selections);
   const steps: BuildStep[] = [];
   const push = (section: string, command: string, note: string) => {
     if (!command) return;
@@ -761,7 +791,8 @@ export function assemble(selections: WizardSelections): BuildStep[] {
   if (fw) {
     fw.commands.forEach((raw, i) => {
       const cmd = resolveToken(raw, pm, language, dir);
-      let note = fw.notes[i] ?? "";
+      // Notes name the folder too ("in my-app") — keep them in sync.
+      let note = (fw.notes[i] ?? "").replaceAll("my-app", dir).replaceAll("MyApp", dir);
       // `cd` mid-script is where copy-paste setups die (ENOENT: no package.json).
       // Pin the working directory expectation right where it changes — any
       // plain `cd <dir>`, never a compound line (the NestJS scaffold cds back).
@@ -821,7 +852,7 @@ export function assemble(selections: WizardSelections): BuildStep[] {
       // hosted DBs) — ignore a stale value instead of emitting it.
       if (parentVal && group.showWhenNot.includes(parentVal)) return;
     }
-    const val = selections.addons[groupId] ?? "none";
+    const val = selections.addons[groupId] || "none";
     if (val === "none") return;
     // One group is multi-choice (AI skills, comma-separated ids) — emit one
     // step per pick, in file order, under the same section number.
@@ -840,7 +871,7 @@ export function assemble(selections: WizardSelections): BuildStep[] {
       cmds.forEach((raw, i) => {
         // __DB_DRIVER__ installs the driver for the chosen database (TypeORM).
         if (raw === "__DB_DRIVER__") {
-          const driver = DB_DRIVER[selections.addons.database ?? "none"];
+          const driver = DB_DRIVER[selections.addons.database || "none"];
           if (!driver) return; // ORM is hidden for these DBs anyway — never a wrong driver
           push(`${4 + idx} · ${group.label}`, `${pmCommands(pm).add} ${driver}`, notes[i] ?? "");
           return;
@@ -857,10 +888,10 @@ export function assemble(selections: WizardSelections): BuildStep[] {
   // purpose: one env file per project, never one command per service. The file
   // is pre-filled (not a blank `touch`) so setup.sh leaves a documented .env
   // showing each key, its format, and which dashboard it comes from.
-  const backend = selections.addons.backend ?? "none";
-  const database = selections.addons.database ?? "none";
-  const auth = selections.addons.auth ?? "none";
-  const payments = selections.addons.payments ?? "none";
+  const backend = selections.addons.backend || "none";
+  const database = selections.addons.database || "none";
+  const auth = selections.addons.auth || "none";
+  const payments = selections.addons.payments || "none";
   const usedNumbers = steps
     .map((s) => parseInt(s.section, 10))
     .filter((n) => !Number.isNaN(n));
@@ -997,7 +1028,7 @@ function aiRulesBody(sel: WizardSelections): string {
   const extras: string[] = [];
   for (const gid of ["database", "auth", "payments"]) {
     const g = addons.groups.find((x) => x.id === gid);
-    const val = sel.addons[gid] ?? "none";
+    const val = sel.addons[gid] || "none";
     if (g && val !== "none") extras.push(`${g.label}: ${labelOf(g.options ?? [], val)}`);
   }
   const envFile = envFileFor(sel.framework);
@@ -1032,11 +1063,11 @@ function aiRulesBody(sel: WizardSelections): string {
     "## Stack",
     `- ${fw} + ${lang} + ${styling}, ${pm}${platform === "mobile" ? ` · Target: ${target === "ios" ? "iPhone" : "Android"}` : ""}`,
     ...(extras.length ? [`- ${extras.join(" · ")}`] : []),
-    "## Commands (run inside " + projectDir(sel) + ")",
+    "## Commands (run inside " + sanitizeAppName(sel.appName, sel) + ")",
     `- Dev: ${dev.command}`,
     `- Build: ${buildCmd}`,
     ...(sel.toggles["eslint-prettier"] ? [`- Lint: ${t.pmx} eslint .`] : []),
-    ...((sel.addons.testing ?? "none") !== "none"
+    ...((sel.addons.testing || "none") !== "none"
       ? [`- Tests: ${pm === "npm" ? "npm test" : pm === "bun" ? "bun test" : `${pm} test`}`]
       : []),
     "## Rules",
@@ -1063,21 +1094,22 @@ export function defaultSelections(): WizardSelections {
   return {
     platform: "web",
     target: "android",
-    language: "typescript",
-    framework: "nextjs",
-    styling: "tailwind",
+    appName: "my-app",
+    language: "",
+    framework: "",
+    styling: "",
     packageManager: "npm",
     toggles: { "eslint-prettier": true, husky: false, structure: true },
     addons: {
-      backend: "none",
-      database: "none",
-      orm: "none",
-      auth: "none",
-      payments: "none",
-      testing: "none",
-      cicd: "none",
-      ai: "none",
-      skills: "none",
+      backend: "",
+      database: "",
+      orm: "",
+      auth: "",
+      payments: "",
+      testing: "",
+      cicd: "",
+      ai: "",
+      skills: "",
     },
   };
 }

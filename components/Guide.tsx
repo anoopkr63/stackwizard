@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SectionEyebrow, SectionSub, SectionTitle } from "./Section";
 import Reveal from "./Reveal";
+import { useSelection } from "./SelectionProvider";
 
 function Code({ lines, label }: { lines: string[]; label: string }) {
   const [copied, setCopied] = useState(false);
@@ -51,6 +52,8 @@ const card =
   "lift h-full rounded-3xl border-2 border-white bg-white p-6 shadow-[0_18px_40px_-24px_rgba(27,20,13,0.35)]";
 
 export default function Guide() {
+  // Examples mirror the live app folder from the wizard above.
+  const { dir } = useSelection();
   return (
     <section id="guide" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-14 sm:px-6 lg:py-20">
       <Reveal>
@@ -64,18 +67,21 @@ export default function Guide() {
           <div className={card}>
             <h3 className="display text-xl font-semibold">Paste the steps</h3>
             <ol className="mt-3 list-decimal space-y-2 pl-5 leading-relaxed text-muted">
-              <li>Go top to bottom, one numbered step at a time.</li>
-              <li>Copy it, paste into your terminal, press Enter.</li>
+              <li>Every box starts blank — answer only what you need, skip the rest.</li>
               <li>
-                Once you enter{" "}
-                <code className="font-mono text-sm text-ink">my-app</code>, stay there.
+                Hover any step and hit Copy — the whole block copies at once. Paste
+                into your terminal, press Enter.
+              </li>
+              <li>
+                Once you enter <code className="font-mono text-sm text-ink">{dir}</code>,
+                stay there.
               </li>
               <li>
                 The last step starts your app — leave that window open.{" "}
                 <code className="font-mono text-sm text-ink">Ctrl+C</code> stops it.
               </li>
             </ol>
-            <Code lines={["cd my-app", "npm run dev"]} label="run commands" />
+            <Code lines={[`cd ${dir}`, "npm run dev"]} label="run commands" />
           </div>
         </Reveal>
         <Reveal delay={90}>
@@ -89,8 +95,9 @@ export default function Guide() {
               <li>Start your app yourself after it finishes.</li>
               <li>Separate backend? It gets its own window.</li>
               <li>
-                Failed? <code className="font-mono text-sm text-ink">rm -rf my-app</code>,
-                run again.
+                Failed?{" "}
+                <code className="font-mono text-sm text-ink">rm -rf {dir}</code>, run
+                again.
               </li>
             </ol>
             <Code lines={["chmod +x setup.sh", "./setup.sh"]} label="script commands" />
@@ -98,17 +105,26 @@ export default function Guide() {
         </Reveal>
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Reveal>
           <div className={card}>
-            <h3 className="display text-xl font-semibold">Keys</h3>
+            <h3 className="display text-xl font-semibold">Phones?</h3>
             <p className="mt-2 leading-relaxed text-muted">
-              Keys go in one file. Copy them from each service&rsquo;s site. Never share
-              it.
+              Building for mobile? Pick Android or iPhone first — the run commands
+              follow your phone.
             </p>
           </div>
         </Reveal>
-        <Reveal delay={90}>
+        <Reveal delay={60}>
+          <div className={card}>
+            <h3 className="display text-xl font-semibold">Keys</h3>
+            <p className="mt-2 leading-relaxed text-muted">
+              Keys go in one file. Copy them from each service&rsquo;s site. The steps
+              add the file to .gitignore, so it never gets committed.
+            </p>
+          </div>
+        </Reveal>
+        <Reveal delay={120}>
           <div className={card}>
             <h3 className="display text-xl font-semibold">Share</h3>
             <p className="mt-2 leading-relaxed text-muted">
@@ -121,8 +137,9 @@ export default function Guide() {
           <div className={card}>
             <h3 className="display text-xl font-semibold">Stuck?</h3>
             <p className="mt-2 leading-relaxed text-muted">
-              Wrong folder? <code className="font-mono text-sm text-ink">cd my-app</code>{" "}
-              and repeat the step. Else delete my-app and start over.
+              Wrong folder?{" "}
+              <code className="font-mono text-sm text-ink">cd {dir}</code> and repeat
+              the step. Else delete {dir} and start over.
             </p>
           </div>
         </Reveal>

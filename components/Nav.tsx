@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Nav() {
@@ -18,8 +19,16 @@ export default function Nav() {
       <header className="mx-auto max-w-5xl rounded-full border border-line/70 bg-white shadow-[0_12px_32px_-16px_rgba(27,20,13,0.3)]">
         <nav aria-label="Main" className="flex h-14 items-center justify-between gap-2 pl-4 pr-2 sm:pl-5">
           <Link href="#top" className="display flex items-center gap-2 text-lg font-bold">
-            <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-lg bg-ink text-cream">
-              S
+            <span aria-hidden="true" className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[10px]">
+              <Image
+                src="/icon-transparent.png"
+                alt=""
+                fill
+                sizes="36px"
+                priority
+                className="object-contain"
+                style={{ objectPosition: "50% 42%" }}
+              />
             </span>
             <span className="hidden sm:inline">StackWizard</span>
           </Link>

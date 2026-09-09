@@ -1,11 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import web from "@/data/web.json";
 import mobile from "@/data/mobile.json";
 import desktop from "@/data/desktop.json";
 import ChipScatter from "./ChipScatter";
 import TwinkleField from "./TwinkleField";
-
-const TERMINAL_PREVIEW = ["npm create next-app@latest my-app", "cd my-app", "npm install", "npm run dev"];
+import { useSelection } from "./SelectionProvider";
 
 const FRAMEWORKS = [
   ...(web.categories.find((c) => c.id === "framework")?.options.map((o) => o.label) ?? []),
@@ -14,6 +15,9 @@ const FRAMEWORKS = [
 ];
 
 export default function Hero() {
+  // Terminal card mirrors the live app folder from the wizard below.
+  const { dir } = useSelection();
+  const preview = [`npm create next-app@latest ${dir}`, `cd ${dir}`, "npm install", "npm run dev"];
   return (
     <section className="relative overflow-hidden border-b border-line">
       <div aria-hidden="true" className="bg-grid pointer-events-none absolute inset-0" />
@@ -79,7 +83,7 @@ export default function Hero() {
             <span className="ml-2 font-mono text-xs text-white/50">terminal — your new project</span>
           </div>
           <div className="rounded-xl bg-night-soft p-4 font-mono text-[13px] leading-7 text-white/90 sm:text-sm">
-            {TERMINAL_PREVIEW.map((line) => (
+            {preview.map((line) => (
               <p key={line}>
                 <span aria-hidden="true" className="mr-2 select-none text-ember">
                   $

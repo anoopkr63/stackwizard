@@ -21,6 +21,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://stackwizard.example.com"),
   title: "StackWizard — pick your stack, get the exact setup steps",
   description:
     "Answer a few plain questions about your project. StackWizard writes the terminal commands in the right order, with a one-line explanation for each.",
@@ -29,6 +30,21 @@ export const metadata: Metadata = {
     description:
       "Answer a few plain questions. Get copy-paste terminal commands in the right order, each explained in one line.",
     type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "StackWizard — pick your stack, get the exact setup steps" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "StackWizard — pick your stack, get the exact setup steps",
+    description:
+      "Answer a few plain questions. Get copy-paste terminal commands in the right order, each explained in one line.",
+    images: ["/og.png"],
+  },
+  icons: {
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 

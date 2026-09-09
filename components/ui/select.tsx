@@ -38,12 +38,14 @@ export default function FieldSelect({
   value,
   onChange,
   options,
+  placeholder,
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: FieldOption[];
+  placeholder?: string;
 }) {
   const selected = options.find((o) => o.id === value);
   return (
@@ -51,11 +53,17 @@ export default function FieldSelect({
       <Select.Trigger
         id={id}
         aria-label={label}
-        className="select-trigger flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-ink/15 bg-white px-3.5 text-[15px] font-medium text-ink transition-colors hover:border-ink/35"
+        className="select-trigger flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-ink/15 bg-white px-3.5 py-2 text-left text-[15px] font-medium text-ink transition-colors hover:border-ink/35"
       >
-        <span className="min-w-0 truncate">
-          {selected?.label}
-          {selected?.hint ? <span className="font-normal text-muted"> — {selected.hint}</span> : null}
+        <span className="min-w-0 flex-1">
+          {selected ? (
+            <>
+              {selected.label}
+              {selected.hint ? <span className="font-normal text-muted"> — {selected.hint}</span> : null}
+            </>
+          ) : (
+            <span className="font-normal text-muted">{placeholder ?? "Select…"}</span>
+          )}
         </span>
         <ChevronDown className="shrink-0 text-muted" />
       </Select.Trigger>

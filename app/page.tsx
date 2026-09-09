@@ -10,10 +10,12 @@ import Footer from "@/components/Footer";
 import IntroLoader from "@/components/IntroLoader";
 import ScrollProgress from "@/components/ScrollProgress";
 import BackToTop from "@/components/BackToTop";
+import { SelectionProvider } from "@/components/SelectionProvider";
 
 export default function Home() {
   return (
     <div id="top">
+      <SelectionProvider>
       <ScrollProgress />
       <IntroLoader />
       <Nav />
@@ -28,6 +30,7 @@ export default function Home() {
       </main>
       <Footer />
       <BackToTop />
+      </SelectionProvider>
     </div>
   );
 }
