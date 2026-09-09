@@ -17,6 +17,9 @@ export function catalogFor(platform: PlatformId) {
 // output (stale share links included).
 export function isOptionVisible(opt: OptionLike, selections: WizardSelections): boolean {
   if (opt.platforms && !opt.platforms.includes(selections.platform ?? "web")) return false;
+  // Blank framework (nothing picked yet) counts as visible — never hide
+  // options before the user has chosen.
+  if (opt.frameworks && selections.framework && !opt.frameworks.includes(selections.framework)) return false;
   for (const [groupId, allowed] of Object.entries(opt.showWhen ?? {})) {
     if (!allowed.includes(selections.addons[groupId] ?? "none")) return false;
   }
@@ -26,15 +29,17 @@ export function isOptionVisible(opt: OptionLike, selections: WizardSelections): 
   return true;
 }
 
-// Per-platform overrides for options whose package differs per platform
-// (Stripe web vs Stripe React Native, Clerk web vs Clerk Expo…).
-function optionCommands(opt: OptionLike, platform: PlatformId): string[] {
+// Per-framework overrides win (Clerk's package differs per framework),
+// then per-platform overrides, then the base commands.
+function optionCommands(opt: OptionLike, platform: PlatformId, framework: string): string[] {
+  if (framework && opt.overrides?.[framework]?.commands) return opt.overrides[framework].commands;
   if (platform === "mobile" && opt.commandsMobile) return opt.commandsMobile;
   if (platform === "desktop" && opt.commandsDesktop) return opt.commandsDesktop;
   return opt.commands;
 }
 
-function optionNotes(opt: OptionLike, platform: PlatformId): string[] {
+function optionNotes(opt: OptionLike, platform: PlatformId, framework: string): string[] {
+  if (framework && opt.overrides?.[framework]?.notes) return opt.overrides[framework].notes;
   if (platform === "mobile" && opt.notesMobile) return opt.notesMobile;
   if (platform === "desktop" && opt.notesDesktop) return opt.notesDesktop;
   return opt.notes;
@@ -44,6 +49,7 @@ function optionNotes(opt: OptionLike, platform: PlatformId): string[] {
 function publicPrefix(framework: string): string {
   if (framework === "nextjs") return "NEXT_PUBLIC_";
   if (framework === "nuxt") return "NUXT_PUBLIC_";
+  // SvelteKit exposes only PUBLIC_-prefixed vars to the browser ($env/static/public).
   if (framework === "sveltekit") return "PUBLIC_";
   if (framework === "angular") return "NG_APP_";
   if (framework === "expo") return "EXPO_PUBLIC_";
@@ -429,6 +435,115 @@ export async function POST(req) {
   }
 }`;
 
+// ---- Service client stubs (wired, self-contained) ------------------------
+// Additive files under src/lib (never template-owned). Self-contained on
+// purpose: they inline the env check instead of importing ./env, so they
+// still work when the "Production folders" toggle is off.
+
+function serviceAccess(framework: string): string {
+  // Next.js reads process.env; every Vite-family UI reads import.meta.env.
+  if (framework === "nextjs") return "process.env[name]";
+  return "import.meta.env[name] as string | undefined";
+}
+
+// Frameworks whose env model the stubs below speak. Nuxt wants its module
+// (@nuxtjs/supabase), Angular wants environment files, mobile wants native
+// SDK wiring — those get notes, not stubs.
+const SERVICE_STUB_FRAMEWORKS = [
+  "nextjs",
+  "react-vite",
+  "vue",
+  "solid",
+  "sveltekit",
+  "tauri",
+  "electron",
+  "wails",
+];
+
+function requiredFn(sel: WizardSelections): string {
+  const ts = sel.language === "typescript";
+  const sig = ts ? "(name: string): string" : "(name)";
+  return `function required${sig} {
+  const value = ${serviceAccess(sel.framework)};
+  if (!value) throw new Error("Missing env: " + name + " — add it to ${envFileFor(sel.framework)}");
+  return value;
+}`;
+}
+
+function supabaseStub(sel: WizardSelections): string {
+  const PUB = publicPrefix(sel.framework);
+  return `import { createClient } from "@supabase/supabase-js";
+
+${requiredFn(sel)}
+
+export const supabase = createClient(
+  required("${PUB}SUPABASE_URL"),
+  required("${PUB}SUPABASE_ANON_KEY")
+);`;
+}
+
+function stripeStub(sel: WizardSelections): string {
+  const PUB = publicPrefix(sel.framework);
+  return `import { loadStripe } from "@stripe/stripe-js";
+
+${requiredFn(sel)}
+
+export const stripePromise = loadStripe(required("${PUB}STRIPE_PUBLISHABLE_KEY"));`;
+}
+
+function libDir(framework: string): string {
+  return framework === "wails" ? "frontend/src/lib" : "src/lib";
+}
+
+// True when the pick is live (visible for this platform/framework), so
+// stale share-link values never emit stubs for hidden options.
+export function isAddonLive(sel: WizardSelections, groupId: string, id: string): boolean {
+  if (!id || id === "none") return false;
+  const opt = addons.groups.find((g) => g.id === groupId)?.options?.find((o) => o.id === id);
+  return !!opt && isOptionVisible(opt, sel);
+}
+
+// Tauri v2 reads CSP from src-tauri/tauri.conf.json > app.security.csp.
+// The template ships null — merge a strict-enough CSP for the picked
+// services via node. Guarded: never fails setup.sh, never overwrites.
+function tauriCspSteps(supabase: boolean, stripe: boolean): { command: string; note: string }[] {
+  if (!supabase && !stripe) return [];
+  const connect = ["'self'"];
+  if (supabase) connect.push("https://*.supabase.co", "wss://*.supabase.co");
+  if (stripe) connect.push("https://api.stripe.com", "https://*.stripe.com");
+  const script = ["'self'"];
+  if (stripe) script.push("https://js.stripe.com");
+  const frame = stripe ? ["https://js.stripe.com", "https://hooks.stripe.com"] : [];
+  const csp =
+    `default-src 'self'; connect-src ${connect.join(" ")}; ` +
+    `img-src 'self' data: https:; script-src ${script.join(" ")}; ` +
+    `style-src 'self' 'unsafe-inline'` +
+    (frame.length ? `; frame-src ${frame.join(" ")}` : "");
+  const merger = `const fs = require("fs");
+const p = "src-tauri/tauri.conf.json";
+try {
+  const j = JSON.parse(fs.readFileSync(p, "utf8"));
+  j.app = j.app || {};
+  j.app.security = j.app.security || {};
+  if (!j.app.security.csp) {
+    j.app.security.csp = "${csp}";
+    fs.writeFileSync(p, JSON.stringify(j, null, 2) + "\\n");
+    console.log("CSP set in tauri.conf.json");
+  } else {
+    console.log("CSP already set — leaving it");
+  }
+} catch (e) {
+  console.log("Could not update tauri.conf.json (" + e.message + ") — set app.security.csp by hand");
+}`;
+  return [
+    { command: heredoc("tauri-csp.cjs", merger), note: "Writes a one-time CSP patch script (template config is never hand-edited)" },
+    {
+      command: "node tauri-csp.cjs; rm -f tauri-csp.cjs",
+      note: "Sets a production CSP for your services (skipped if already set)",
+    },
+  ];
+}
+
 const heredoc = (file: string, body: string) => `cat > ${file} <<'EOF'\n${body}\nEOF`;
 
 function expandStructure(sel: WizardSelections): { command: string; note: string }[] {
@@ -486,6 +601,8 @@ function expandStructure(sel: WizardSelections): { command: string; note: string
 // StackOption so JSON-imported options (inferred `string[]`) stay assignable.
 interface OptionLike {
   platforms?: string[];
+  frameworks?: string[];
+  overrides?: { [k: string]: { commands: string[]; notes: string[] } | undefined };
   showWhen?: Record<string, string[]>;
   hideWhen?: Record<string, string[]>;
   commands: string[];
@@ -607,16 +724,34 @@ function gitlabCiFile(pm: PackageManagerId): string {
   ].join("\n");
 }
 
+// Reverse-domain id for Tauri (no dashes — "my-app" becomes myapp).
+function tauriIdentifier(dir: string): string {
+  const slug = dir.toLowerCase().replace(/[^a-z0-9]/g, "") || "myapp";
+  return `com.stackwizard.${slug}`;
+}
+
+// Non-interactive Tauri scaffold: pinned React-TS template + manager +
+// identifier + --yes, so setup.sh never hangs on prompts. Uses the pmx
+// form on every manager (npx needs no extra `--`, yarn/pnpm/bunx neither).
+function tauriCreate(pm: PackageManagerId, language: string, dir = "my-app"): string {
+  const t = pmCommands(pm);
+  const tpl = language === "typescript" ? "react-ts" : "react";
+  return `${t.pmx} create-tauri-app@latest ${dir} --template ${tpl} --manager ${pm} --identifier ${tauriIdentifier(dir)} --yes`;
+}
+
 function resolveToken(cmd: string, pm: PackageManagerId, language: string, dir = "my-app"): string {
   const t = pmCommands(pm);
   const ts = language === "typescript";
   if (cmd === "__CI_FILE__") return githubCiFile(pm);
   if (cmd === "__GITLAB_CI_FILE__") return gitlabCiFile(pm);
+  if (cmd === "__TAURI_CREATE__") return tauriCreate(pm, language, dir);
+  // Wails keeps its UI under frontend/ — install there, then come back.
+  if (cmd === "__WAILS_INSTALL__") return `cd frontend && ${t.install} && cd ..`;
   // Data files name the scaffold folder literally (cd my-app, init MyApp) —
   // rewrite those first, before tokens embed dir below (dir itself may
   // contain "my-app", e.g. my-app-2 — a later pass would double-rewrite it).
   const named = cmd.replaceAll("my-app", dir).replaceAll("MyApp", dir);
-  return named
+  const resolved = named
     .replaceAll("__DIR__", dir)
     .replaceAll("__PM_CREATE__", t.create)
     .replaceAll("__ADD__", t.add)
@@ -634,13 +769,24 @@ function resolveToken(cmd: string, pm: PackageManagerId, language: string, dir =
     )
     .replaceAll(
       "__NEXT_CREATE__",
-      `${t.create} next-app@latest ${dir} ${ts ? "--ts" : "--js"} --tailwind --eslint --app --src-dir --import-alias "@/*" --use-${pm}`
+      // `npm create next-app@latest … --flags` eats every --flag as an npm
+      // config (Unknown cli config "--ts"…), then runs
+      // `npx "create-next-app" my-app @/*`. npm needs either a `--`
+      // separator or a direct npx call — use npx (what Next.js docs show).
+      // yarn/pnpm/bun pass args through `create` fine, so keep their form.
+      pm === "npm"
+        ? `${t.pmx} create-next-app@latest ${dir} ${ts ? "--ts" : "--js"} --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm`
+        : `${t.create} next-app@latest ${dir} ${ts ? "--ts" : "--js"} --tailwind --eslint --app --src-dir --import-alias "@/*" --use-${pm}`
     )
     .replaceAll(
       "__ELECTRON_CREATE__",
       `${t.pmx} create-electron-app@latest ${dir} --template=vite-${ts ? "typescript" : "javascript"}`
     )
     .replaceAll("__WAILS_INIT__", `wails init -n ${dir} -t react${ts ? "-ts" : ""}`);
+  // `bun create X` only resolves bun-create-* templates — plain create-*
+  // packages (vue, svelte, vite, next-app) must go through bunx instead.
+  if (pm === "bun") return resolved.replace(/^bun create /, "bunx create-");
+  return resolved;
 }
 
 // Folder the scaffold creates, from the user's app name. Slugs to
@@ -665,6 +811,14 @@ export function sanitizeAppName(
   return slug || "my-app";
 }
 
+const STUB_POSTCSS = `export default {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};`;
+
+const STUB_TAILWIND_CSS = `@import "tailwindcss";`;
+
 function tailwindCommands(pm: PackageManagerId, framework: string): { commands: string[]; notes: string[] } {
   if (framework === "nextjs") {
     return {
@@ -673,13 +827,191 @@ function tailwindCommands(pm: PackageManagerId, framework: string): { commands: 
     };
   }
   const t = pmCommands(pm);
-  // Tailwind v4: no init file, no autoprefixer — just the package + its PostCSS plugin.
-  return {
-    commands: [`${t.addDev} tailwindcss @tailwindcss/postcss`],
-    notes: [
-      'Adds Tailwind v4 (then @import "tailwindcss" in your CSS)',
-    ],
-  };
+  // Wails keeps its UI under frontend/ — every emitted path matches that layout.
+  const root = framework === "wails" ? "frontend/" : "";
+  // CSS entry per template layout (create-vue keeps it under assets/).
+  const cssRel = framework === "vue" ? "src/assets/main.css" : "src/index.css";
+  const cssPath = `${root}${cssRel}`;
+  // Import spec relative to the entry file's own dir (both live under src/).
+  const spec = `./${cssRel.replace(/^src\//, "")}`;
+  const commands = [
+    `${t.addDev} tailwindcss @tailwindcss/postcss`,
+    heredoc(`${root}postcss.config.js`, STUB_POSTCSS),
+    heredoc(cssPath, STUB_TAILWIND_CSS),
+  ];
+  const notes = [
+    "Adds Tailwind v4 (PostCSS plugin)",
+    "Wires Tailwind into PostCSS (new file — your vite config is untouched)",
+    "Creates the Tailwind entry CSS (replaces the template's default styles)",
+  ];
+  // Entry file per framework (Solid boots from index.tsx, Vue from main.ts).
+  // The append is guarded (no dupes) and null-safe under set -e.
+  // Electron's Forge template layout varies — link the CSS by hand there.
+  const entries =
+    framework === "vue"
+      ? ["src/main.ts", "src/main.js"]
+      : framework === "solid"
+        ? ["src/index.tsx", "src/index.jsx", "src/index.ts", "src/index.js"]
+        : framework === "electron"
+          ? []
+          : [`${root}src/main.tsx`, `${root}src/main.ts`, `${root}src/main.jsx`, `${root}src/main.js`];
+  if (entries.length) {
+    const base = spec.split("/").pop() ?? "index.css";
+    commands.push(
+      `for f in ${entries.join(" ")}; do [ -f "$f" ] && { grep -q "${base}" "$f" || echo 'import "${spec}"' >> "$f"; } || true; done`
+    );
+    notes.push("Links the CSS entry into your main file (skipped if already linked)");
+  } else {
+    commands.push(`# Electron: add import "${spec}" to your renderer entry file`);
+    notes.push("Link the CSS entry into your renderer entry file");
+  }
+  return { commands, notes };
+}
+
+// ---- Framework-correct lint setup ---------------------------------------
+// The data toggle (generic eslint + create-config) is the fallback for
+// frameworks not listed here (unknown only). Everything else gets the
+// right plugin + a working flat config — never a React config for Vue.
+
+function lintConfig(family: "vue" | "react" | "svelte", ts: boolean): string {
+  const tsImport = ts ? 'import tseslint from "typescript-eslint";\n' : "";
+  const tsWrapOpen = ts ? "export default tseslint.config(" : "export default [";
+  const tsWrapClose = ts ? ");" : "];";
+  const tsRecommended = ts ? "  ...tseslint.configs.recommended,\n" : "";
+  const extra =
+    family === "vue"
+      ? '  ...vue.configs["flat/recommended"],\n'
+      : family === "svelte"
+        ? '  ...svelte.configs["flat/recommended"],\n'
+        : "  react.configs.flat.recommended,\n";
+  const pluginImport =
+    family === "vue"
+      ? 'import vue from "eslint-plugin-vue";\n'
+      : family === "svelte"
+        ? 'import svelte from "eslint-plugin-svelte";\n'
+        : 'import react from "eslint-plugin-react";\n';
+  const reactSettings =
+    family === "react"
+      ? ", settings: { react: { version: \"detect\" } }"
+      : "";
+  const ignores =
+    family === "svelte"
+      ? '["dist", ".svelte-kit", "build", "node_modules"]'
+      : family === "react"
+        ? '["dist", "build", "out", "node_modules"]'
+        : '["dist", "node_modules"]';
+  return `import js from "@eslint/js";
+${tsImport}${pluginImport}import globals from "globals";
+import prettier from "eslint-config-prettier";
+
+${tsWrapOpen}
+  { ignores: ${ignores} },
+  js.configs.recommended,
+${tsRecommended}${extra}  { languageOptions: { globals: globals.browser }${reactSettings} },
+  prettier
+${tsWrapClose}`;
+}
+
+// Empty array = fall through to the data toggle's generic commands.
+function eslintSteps(
+  pm: PackageManagerId,
+  platform: PlatformId,
+  framework: string,
+  language: string
+): { command: string; note: string }[] {
+  const t = pmCommands(pm);
+  const ts = language === "typescript";
+  // Pin ESLint majors: floating `eslint` resolves to v10, which
+  // typescript-eslint@8 / eslint-plugin-react@7 / plugin-vue@10 reject.
+  const tsPkgs = ts ? " typescript-eslint@^8" : "";
+  const base = "@eslint/js@^9 globals@^16 prettier@^3 eslint-config-prettier@^9";
+  if (framework === "nextjs") {
+    // create-next-app --eslint already ships ESLint + eslint-config-next.
+    // Running create-config over it would clobber the template's
+    // eslint.config.mjs with a generic React config and pull an @eslint/js
+    // that conflicts with the template's eslint version (ERESOLVE on the
+    // next install). Same reason as mobile below.
+    return [{ command: `${t.addDev} prettier@^3 eslint-config-prettier@^9`, note: "Adds Prettier (your template already ships ESLint)" }];
+  }
+  if (platform === "mobile") {
+    // Expo / RN / Ionic templates already ship ESLint — running
+    // create-config over them would clobber the template config.
+    return [{ command: `${t.addDev} prettier@^3`, note: "Adds Prettier (your template already ships ESLint)" }];
+  }
+  if (framework === "nuxt") {
+    return [
+      {
+        command: `${t.addDev} @nuxt/eslint`,
+        note: "Adds the official Nuxt ESLint module (then add @nuxt/eslint to modules in nuxt.config)",
+      },
+    ];
+  }
+  if (framework === "angular") {
+    return [
+      {
+        command: `${t.addDev} prettier@^3`,
+        note: "Adds Prettier (for Angular rules run: ng add angular-eslint and pick your major)",
+      },
+    ];
+  }
+  if (framework === "vue") {
+    return [
+      {
+        command: `${t.addDev} eslint@^9 ${base}${tsPkgs} eslint-plugin-vue@^10`,
+        note: "Adds ESLint + the Vue plugin (not React)",
+      },
+      {
+        command: heredoc("eslint.config.js", lintConfig("vue", ts)),
+        note: "Creates a Vue + TypeScript flat config",
+      },
+    ];
+  }
+  if (framework === "sveltekit") {
+    return [
+      {
+        command: `${t.addDev} eslint@^9 ${base}${tsPkgs} eslint-plugin-svelte@^3`,
+        note: "Adds ESLint + the Svelte plugin",
+      },
+      {
+        command: heredoc("eslint.config.js", lintConfig("svelte", ts)),
+        note: "Creates a Svelte flat config",
+      },
+    ];
+  }
+  if (framework === "solid") {
+    // eslint-plugin-solid has no stable flat preset — install the base set
+    // and point at the plugin docs instead of emitting a half-wired config.
+    return [
+      {
+        command: `${t.addDev} eslint@^9 ${base}${tsPkgs}`,
+        note: "Adds ESLint (then add eslint-plugin-solid per its docs for Solid rules)",
+      },
+    ];
+  }
+  if (framework === "react-vite" || framework === "tauri" || framework === "electron" || framework === "wails") {
+    return [
+      {
+        command: `${t.addDev} eslint@^9 ${base}${tsPkgs} eslint-plugin-react@^7`,
+        note: "Adds ESLint + the React plugin",
+      },
+      {
+        command: heredoc(
+          framework === "wails" ? "frontend/eslint.config.js" : "eslint.config.js",
+          lintConfig("react", ts)
+        ),
+        note: "Creates a React + TypeScript flat config",
+      },
+    ];
+  }
+  if (framework === "ionic") {
+    return [
+      {
+        command: `${t.addDev} eslint@^9 ${base}${tsPkgs} eslint-plugin-react@^7`,
+        note: "Adds ESLint + the React plugin (merge with the template config if one exists)",
+      },
+    ];
+  }
+  return [];
 }
 
 function devCommand(
@@ -819,6 +1151,25 @@ export function assemble(selections: WizardSelections): BuildStep[] {
         if (cmd) push("2 · Add styling", cmd, st.notes[i] ?? "");
         else if (st.notes[i]) push("2 · Add styling", `# ${st.notes[i]}`, st.notes[i]);
       });
+      // NativeWind needs its Tailwind config to see your files — the babel +
+      // metro half still follows the NativeWind setup docs (babel.config.js
+      // is template-owned, never overwritten).
+      if (styling === "nativewind") {
+        push(
+          "2 · Add styling",
+          heredoc(
+            "tailwind.config.js",
+            `/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./App.tsx", "./src/**/*.{js,jsx,ts,tsx}"],
+  presets: [require("nativewind/preset")],
+  theme: { extend: {} },
+  plugins: [],
+};`
+          ),
+          "Adds the NativeWind Tailwind config (then finish the babel + metro setup per NativeWind docs)"
+        );
+      }
     }
   }
 
@@ -829,6 +1180,16 @@ export function assemble(selections: WizardSelections): BuildStep[] {
       if (!selections.toggles[toggle.id]) continue;
       if (toggle.platforms && !toggle.platforms.includes(platform)) continue;
       if (toggle.frameworks && !toggle.frameworks.includes(framework)) continue;
+      // ESLint needs the framework's plugin + config (Vue gets the Vue
+      // plugin, never React). Frameworks without a branch below fall
+      // through to the toggle's generic data commands.
+      if (toggle.id === "eslint-prettier") {
+        const specific = eslintSteps(pm, platform, framework, language);
+        if (specific.length) {
+          for (const s of specific) push(`3 · ${group.label}`, s.command, s.note);
+          continue;
+        }
+      }
       toggle.commands.forEach((raw, i) => {
         // __STRUCTURE__ expands into the framework's folder layout + starter
         // files — never a literal command.
@@ -866,8 +1227,8 @@ export function assemble(selections: WizardSelections): BuildStep[] {
     for (const opt of group.options) {
       if (!wanted.includes(opt.id)) continue;
       if (!isOptionVisible(opt, selections)) continue;
-      const cmds = optionCommands(opt, platform);
-      const notes = optionNotes(opt, platform);
+      const cmds = optionCommands(opt, platform, framework);
+      const notes = optionNotes(opt, platform, framework);
       cmds.forEach((raw, i) => {
         // __DB_DRIVER__ installs the driver for the chosen database (TypeORM).
         if (raw === "__DB_DRIVER__") {
@@ -878,10 +1239,123 @@ export function assemble(selections: WizardSelections): BuildStep[] {
         }      // AI rules files are generated from the live selections (stack-aware),
         // not from static strings — same heredoc pattern as the CI file steps.
         const cmd = AI_RULE_FILES[raw] ? aiRulesCommand(raw, selections) : resolveToken(raw, pm, language, dir);
-        push(`${4 + idx} · ${group.label}`, cmd, notes[i] ?? "");
+        let note = notes[i] ?? "";
+        // The generated CI only runs install + web build — device binaries
+        // and desktop installers need OS-specific runners. Say so inline.
+        if ((raw === "__CI_FILE__" || raw === "__GITLAB_CI_FILE__") && platform !== "web") {
+          note +=
+            platform === "desktop"
+              ? " (web build only — Tauri/Electron/Wails binaries need OS-specific runners; see their docs)"
+              : " (install + web build only — store builds need EAS/Gradle/Xcode)";
+        }
+        push(`${4 + idx} · ${group.label}`, cmd, note);
       });
+      // Wired client stubs for the picked services (additive files under
+      // src/lib — the template's own files are never touched).
+      if (SERVICE_STUB_FRAMEWORKS.includes(framework)) {
+        const ts = selections.language === "typescript";
+        const ext = ts ? "ts" : "js";
+        const section = `${4 + idx} · ${group.label}`;
+        if (groupId === "database" && opt.id === "supabase") {
+          push(section, heredoc(`${libDir(framework)}/supabase.${ext}`, supabaseStub(selections)), "Creates the Supabase client (reads your .env, throws naming what's missing)");
+        }
+        if (groupId === "payments" && opt.id === "stripe" && platform !== "mobile") {
+          push(
+            section,
+            heredoc(`${libDir(framework)}/stripe.${ext}`, stripeStub(selections)),
+            platform === "desktop"
+              ? "Creates the Stripe client (publishable key only — secrets stay on a server)"
+              : "Creates the Stripe client (publishable key only — secrets stay server-side)"
+          );
+        }
+      }
+    }
+    // Supabase Auth without the Supabase database still needs the client
+    // (and only when the auth pick itself is live, not a stale value).
+    if (
+      groupId === "auth" &&
+      isAddonLive(selections, "auth", "supabase-auth") &&
+      SERVICE_STUB_FRAMEWORKS.includes(framework) &&
+      !isAddonLive(selections, "database", selections.addons.database || "none")
+    ) {
+      const ts = selections.language === "typescript";
+      const ext = ts ? "ts" : "js";
+      push(
+        `${4 + idx} · ${group.label}`,
+        heredoc(`${libDir(framework)}/supabase.${ext}`, supabaseStub(selections)),
+        "Creates the Supabase client (reads your .env, throws naming what's missing)"
+      );
+    }
+    // Test-script step stays inside the Testing group (numeric order).
+    // Installing a runner alone leaves `npm test` broken (no script) — add
+    // it portably via node (works on every manager). Maestro/Detox are
+    // device binaries with their own CLIs — no script.
+    if (groupId === "testing" && platform !== "mobile") {
+      const picked = selections.addons.testing || "none";
+      if (["vitest", "jest", "playwright", "cypress"].includes(picked)) {
+        const runner =
+          picked === "vitest"
+            ? "vitest run"
+            : picked === "jest"
+              ? "jest"
+              : picked === "playwright"
+                ? "playwright test"
+                : "cypress run";
+        // Single-quoted JS, doubles inside, no $ or backticks.
+        const setTest =
+          `node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("package.json","utf8"));` +
+          `p.scripts=p.scripts||{};p.scripts.test="${runner}";` +
+          `fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\\n")'`;
+        push(
+          `${4 + idx} · ${group.label}`,
+          // Wails keeps its package.json under frontend/.
+          framework === "wails" ? `cd frontend && ${setTest} && cd ..` : setTest,
+          "Adds the test script (so npm/pnpm/yarn/bun test runs your suite)"
+        );
+      }
     }
   });
+
+  // Test-script step — installing a runner alone leaves `npm test`
+  // broken (no script). Add it portably via node (works on every manager).
+  // Maestro/Detox are device binaries with their own CLIs — no script.
+  const testing = selections.addons.testing || "none";
+  if (["vitest", "jest", "playwright", "cypress"].includes(testing) && platform !== "mobile") {
+    const runner =
+      testing === "vitest"
+        ? "vitest run"
+        : testing === "jest"
+          ? "jest"
+          : testing === "playwright"
+            ? "playwright test"
+            : "cypress run";
+    // __DB_DRIVER__-style quoting: single-quoted JS, doubles inside, no $ or backticks.
+    const setTest =
+      `node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("package.json","utf8"));` +
+      `p.scripts=p.scripts||{};p.scripts.test="${runner}";` +
+      `fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\\n")'`;
+    push(
+      `${4 + order.indexOf("testing")} · Testing`,
+      // Wails keeps its package.json under frontend/.
+      framework === "wails" ? `cd frontend && ${setTest} && cd ..` : setTest,
+      "Adds the test script (so npm/pnpm/yarn/bun test runs your suite)"
+    );
+  }
+
+  // Tauri CSP — the template ships csp: null. Merge a strict-enough policy
+  // for the picked services (guarded merge, never overwrites, never fails).
+  if (framework === "tauri") {
+    const hasSupabase =
+      isAddonLive(selections, "database", "supabase") || isAddonLive(selections, "auth", "supabase-auth");
+    const hasStripe = isAddonLive(selections, "payments", "stripe");
+    if (hasSupabase || hasStripe) {
+      const used = steps.map((s) => parseInt(s.section, 10)).filter((n) => !Number.isNaN(n));
+      const cspNo = (used.length ? Math.max(...used) : 3) + 1;
+      for (const s of tauriCspSteps(hasSupabase, hasStripe)) {
+        push(`${cspNo} · Desktop security`, s.command, s.note);
+      }
+    }
+  }
 
   // Keys step — one env file with placeholders for every key the picks need
   // (Supabase URL, auth secrets, DB connection, payment keys). Single step on
@@ -902,12 +1376,22 @@ export function assemble(selections: WizardSelections): BuildStep[] {
     payments !== "none";
   if (needsEnv) {
     const envFile = envFileFor(framework);
+    const envExample = `${envFile}.example`;
     const env = envBlocks(selections);
     const who = env.services.length ? ` for ${env.services.join(" + ")}` : "";
+    // Pre-filled example (formats + dashboards), then a no-clobber copy —
+    // never a blank `touch` that leaves the user guessing.
     push(
       `${nextNo} · Save your keys`,
-      `touch ${envFile}`,
-      `Creates your env file${who}. Never commit it.`
+      heredoc(envExample, env.lines.join("\n")),
+      `Creates a documented env template${who}.`
+    );
+    push(
+      `${nextNo} · Save your keys`,
+      `cp -n ${envExample} ${envFile}`,
+      framework === "angular"
+        ? `Creates your env file${who} (Angular can't read it directly — copy values into src/environments/*). Never commit it.`
+        : `Creates your env file${who} from the template (keeps yours if it exists). Never commit it.`
     );
     // The scaffolds' default gitignores don't all cover our env filename —
     // back the "never commit it" promise with a real ignore line. Idempotent:
@@ -937,7 +1421,16 @@ export function assemble(selections: WizardSelections): BuildStep[] {
   const dev = devCommand(pm, platform, framework, selections.target ?? "android");
   push(`${nextNo} · See it running`, dev.command, dev.note);
 
-  return mergeInstallSteps(steps);
+  // Service picks can converge on one install (Supabase DB + Supabase Auth
+  // both need supabase-js) — rerunning is harmless but noisy, so keep the
+  // first occurrence of any byte-identical command.
+  const seen = new Set<string>();
+  const deduped = steps.filter((s) => {
+    if (seen.has(s.command)) return false;
+    seen.add(s.command);
+    return true;
+  });
+  return mergeInstallSteps(deduped);
 }
 
 // ---- One-file setup script: everything in one go, prompts auto-answered ----
@@ -945,8 +1438,11 @@ const RUN_SECTIONS = ["See it running", "Run your backend"];
 
 // Scaffolds that stop and ask questions mid-run (project name, options…).
 // `yes ""` answers them all with defaults so the script never hangs.
+// Already non-interactive commands (--yes) and plain `npm start`-style
+// lines are excluded.
 function needsAutoYes(cmd: string): boolean {
-  return /(create|init|nuxi|@angular\/cli|@nestjs\/cli new)/i.test(cmd);
+  if (cmd.includes("--yes")) return false;
+  return /(create|init|nuxi|@angular\/cli|@nestjs\/cli new|@ionic\/cli)/i.test(cmd);
 }
 
 // Folder the scaffold creates — the first plain `cd <dir>` step names it
@@ -1067,9 +1563,28 @@ function aiRulesBody(sel: WizardSelections): string {
     `- Dev: ${dev.command}`,
     `- Build: ${buildCmd}`,
     ...(sel.toggles["eslint-prettier"] ? [`- Lint: ${t.pmx} eslint .`] : []),
-    ...((sel.addons.testing || "none") !== "none"
-      ? [`- Tests: ${pm === "npm" ? "npm test" : pm === "bun" ? "bun test" : `${pm} test`}`]
-      : []),
+    // The generated project gets a real `test` script (js runners) or a
+    // device-CLI flow (mobile) — point at the runner, never bare `npm test`.
+    ...(() => {
+      const picked = sel.addons.testing || "none";
+      const runner =
+        picked === "vitest"
+          ? "vitest run"
+          : picked === "jest"
+            ? "jest"
+            : picked === "playwright"
+              ? "playwright test"
+              : picked === "cypress"
+                ? "cypress run"
+                : picked === "maestro"
+                  ? "maestro test"
+                  : picked === "detox"
+                    ? "detox test"
+                    : "";
+      if (!runner) return [];
+      const cmd = picked === "maestro" || picked === "detox" ? runner : `${t.pmx} ${runner}`;
+      return [`- Tests: ${cmd}`];
+    })(),
     "## Rules",
     `- Keys go in ${envFile} — never commit it, never print it`,
     "- Don't change the package manager or framework without asking",
@@ -1078,9 +1593,19 @@ function aiRulesBody(sel: WizardSelections): string {
     "- Validate all user input and API responses before use",
     "- Wrap data-fetching in try/catch with a user-visible fallback state",
     "- Never leave a promise unhandled; never swallow errors silently",
-    platform === "mobile"
-      ? "- Use an error boundary around your navigation screens"
-      : "- Use the framework's error boundary (Next.js error.tsx, React ErrorBoundary)",
+    sel.framework === "vue"
+      ? "- Wrap views in onErrorCaptured + app.config.errorHandler with a fallback state"
+      : sel.framework === "nuxt"
+        ? "- Use Nuxt error.vue + onErrorCaptured with a fallback state"
+        : sel.framework === "sveltekit"
+          ? "- Use +error.svelte with a fallback state"
+          : sel.framework === "angular"
+            ? "- Implement a global ErrorHandler with a fallback view"
+            : sel.framework === "solid"
+              ? "- Wrap routes in Solid's ErrorBoundary with a fallback"
+              : platform === "mobile"
+                ? "- Use an error boundary around your navigation screens"
+                : "- Use the framework's error boundary (Next.js error.tsx, React ErrorBoundary) with a fallback",
   ];
   return lines.join("\n");
 }

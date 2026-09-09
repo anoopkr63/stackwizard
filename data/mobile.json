@@ -71,14 +71,14 @@
           "label": "Tamagui",
           "hint": "Full UI kit",
           "commands": ["__ADD__ tamagui"],
-          "notes": ["Adds Tamagui components + themes"]
+          "notes": ["Adds Tamagui components + themes (wrap your app in TamaguiProvider per the Tamagui docs)"]
         },
         {
           "id": "rn-paper",
           "label": "React Native Paper",
           "hint": "Material",
           "commands": ["__ADD__ react-native-paper"],
-          "notes": ["Adds Material-style components"]
+          "notes": ["Adds Material-style components (wrap your app in PaperProvider per the docs)"]
         }
       ]
     },

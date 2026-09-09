@@ -126,7 +126,13 @@
           "label": "Supabase",
           "hint": "Hosted",
           "commands": ["__ADD__ @supabase/supabase-js"],
-          "notes": ["Adds Supabase. Keys go in .env."]
+          "notes": ["Adds Supabase. Keys go in .env."],
+          "overrides": {
+            "nuxt": {
+              "commands": ["__ADD__ @nuxtjs/supabase"],
+              "notes": ["Adds the official Nuxt Supabase module (then add @nuxtjs/supabase to modules in nuxt.config). Keys go in .env."]
+            }
+          }
         },
         {
           "id": "firebase",
@@ -187,6 +193,7 @@
           "label": "Auth.js / NextAuth",
           "hint": "For Next.js",
           "platforms": ["web"],
+          "frameworks": ["nextjs"],
           "commands": ["__ADD__ next-auth"],
           "notes": ["Adds Auth.js. Best with Next.js."]
         },
@@ -195,16 +202,44 @@
           "label": "Clerk",
           "hint": "Easiest",
           "platforms": ["web", "mobile"],
+          "frameworks": ["nextjs", "react-vite", "vue", "nuxt", "ionic", "expo", "react-native"],
           "commands": ["__ADD__ @clerk/nextjs"],
           "notes": ["Adds Clerk. Keys go in .env."],
-          "commandsMobile": ["__ADD__ @clerk/clerk-expo"],
-          "notesMobile": ["Adds Clerk for Expo. Keys go in .env."]
+          "commandsMobile": ["__ADD__ @clerk/expo"],
+          "notesMobile": ["Adds Clerk for Expo. Keys go in .env."],
+          "overrides": {
+            "react-vite": {
+              "commands": ["__ADD__ @clerk/react"],
+              "notes": ["Adds Clerk for React (Vite). Keys go in .env."]
+            },
+            "vue": {
+              "commands": ["__ADD__ @clerk/vue"],
+              "notes": ["Adds Clerk for Vue. Keys go in .env."]
+            },
+            "nuxt": {
+              "commands": ["__ADD__ @clerk/nuxt"],
+              "notes": ["Adds Clerk for Nuxt. Keys go in .env."]
+            },
+            "ionic": {
+              "commands": ["__ADD__ @clerk/react"],
+              "notes": ["Adds Clerk for Ionic React. Keys go in .env."]
+            },
+            "expo": {
+              "commands": ["__ADD__ @clerk/expo"],
+              "notes": ["Adds Clerk for Expo. Keys go in .env."]
+            },
+            "react-native": {
+              "commands": ["__ADD__ @clerk/expo"],
+              "notes": ["Adds Clerk (works on bare React Native too). Keys go in .env."]
+            }
+          }
         },
         {
           "id": "auth0",
           "label": "Auth0",
           "hint": "Enterprise",
           "platforms": ["web", "mobile"],
+          "frameworks": ["nextjs", "expo", "react-native"],
           "commands": ["__ADD__ @auth0/nextjs-auth0"],
           "notes": ["Adds Auth0. Keys go in .env."],
           "commandsMobile": ["__ADD__ react-native-auth0"],
@@ -223,8 +258,14 @@
           "label": "Supabase Auth",
           "hint": "For Supabase",
           "hideWhen": { "database": ["firebase"] },
-          "commands": ["__ADD__ @supabase/ssr"],
-          "notes": ["Adds Supabase login."]
+          "commands": ["__ADD__ @supabase/supabase-js"],
+          "notes": ["Adds Supabase login (client). Keys go in .env."],
+          "overrides": {
+            "nextjs": {
+              "commands": ["__ADD__ @supabase/ssr"],
+              "notes": ["Adds Supabase Auth helpers for Next.js (SSR cookies). Keys go in .env."]
+            }
+          }
         }
       ]
     },
@@ -241,7 +282,9 @@
           "commands": ["__ADD__ stripe @stripe/stripe-js"],
           "notes": ["Adds Stripe. Test keys go in .env."],
           "commandsMobile": ["__ADD__ @stripe/stripe-react-native"],
-          "notesMobile": ["Adds Stripe for React Native. Test keys go in .env."]
+          "notesMobile": ["Adds Stripe for React Native. Test keys go in .env."],
+          "commandsDesktop": ["__ADD__ @stripe/stripe-js"],
+          "notesDesktop": ["Adds Stripe.js (client only). Desktop apps can't keep a secret key — charge and verify through your server."]
         },
         {
           "id": "paypal",
@@ -249,7 +292,8 @@
           "hint": "Trusted",
           "platforms": ["web", "desktop"],
           "commands": ["__ADD__ @paypal/paypal-server-sdk @paypal/paypal-js"],
-          "notes": ["Adds PayPal. Sandbox keys needed."]
+          "notes": ["Adds PayPal. Sandbox keys needed."],
+          "notesDesktop": ["Adds PayPal (keep the secret on a server — ship only the client ID in the desktop app). Sandbox keys needed."]
         },
         {
           "id": "paddle",
@@ -257,7 +301,8 @@
           "hint": "Tax handled",
           "platforms": ["web", "desktop"],
           "commands": ["__ADD__ @paddle/paddle-js"],
-          "notes": ["Adds Paddle (handles sales tax)."]
+          "notes": ["Adds Paddle (handles sales tax)."],
+          "notesDesktop": ["Adds Paddle.js (client only — server calls stay on your server)."]
         },
         {
           "id": "lemonsqueezy",
@@ -274,7 +319,8 @@
           "commands": ["__ADD__ razorpay"],
           "notes": ["Adds Razorpay. Test keys needed."],
           "commandsMobile": ["__ADD__ react-native-razorpay"],
-          "notesMobile": ["Adds Razorpay for React Native. Test keys needed."]
+          "notesMobile": ["Adds Razorpay for React Native. Test keys needed."],
+          "notesDesktop": ["Adds Razorpay (keep the key secret on a server — desktop apps ship the public key only). Test keys needed."]
         },
         {
           "id": "revenuecat",

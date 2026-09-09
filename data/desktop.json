@@ -19,22 +19,22 @@
           "id": "tauri",
           "label": "Tauri",
           "hint": "Recommended",
-          "commands": ["__PMX__ create-tauri-app@latest my-app", "cd my-app", "__INSTALL__"],
-          "notes": ["Starts the Tauri setup (needs Rust from rustup.rs — pick React when asked)", "Enters my-app", "Installs dependencies"]
+          "commands": ["__TAURI_CREATE__", "cd my-app", "__INSTALL__"],
+          "notes": ["Scaffolds a Tauri + React-TS app in my-app (needs Rust from rustup.rs — no prompts)", "Enters my-app", "Installs dependencies"]
         },
         {
           "id": "electron",
           "label": "Electron",
           "hint": "Most apps",
           "commands": ["__ELECTRON_CREATE__", "cd my-app", "__INSTALL__"],
-          "notes": ["Creates an Electron app in my-app (official Forge template)", "Enters my-app", "Installs dependencies"]
+          "notes": ["Creates an Electron app in my-app (official Forge template: Vite + TypeScript)", "Enters my-app", "Installs dependencies"]
         },
         {
           "id": "wails",
           "label": "Wails",
           "hint": "Go backend",
-          "commands": ["go install github.com/wailsapp/wails/v2/cmd/wails@latest", "__WAILS_INIT__", "cd my-app", "__INSTALL__"],
-          "notes": ["Installs the Wails CLI (needs Go first)", "Scaffolds a Wails app in my-app", "Enters my-app", "Installs frontend dependencies"]
+          "commands": ["go install github.com/wailsapp/wails/v2/cmd/wails@latest", "__WAILS_INIT__", "cd my-app", "__WAILS_INSTALL__"],
+          "notes": ["Installs the Wails CLI (needs Go first)", "Scaffolds a Wails app in my-app", "Enters my-app", "Installs frontend dependencies (inside frontend/)"]
         }
       ]
     },

@@ -11,6 +11,12 @@ export interface StackOption {
   hideWhen?: Record<string, string[]>;
   /** Platforms this option is offered on. Omitted = all platforms. */
   platforms?: string[];
+  /** Frameworks this option is offered on (e.g. NextAuth only on Next.js).
+   * Omitted = all frameworks. Blank framework selection counts as visible. */
+  frameworks?: string[];
+  /** Per-framework command/note overrides, checked before the
+   * platform overrides below (Clerk's package differs per framework). */
+  overrides?: { [k: string]: { commands: string[]; notes: string[] } | undefined };
   /** Per-platform command/note overrides (used on mobile/desktop when present). */
   commandsMobile?: string[];
   notesMobile?: string[];

@@ -164,7 +164,9 @@ export default function Wizard() {
       gaps.push(
         pay === "revenuecat"
           ? "Payments: connect App Store / Play in the RevenueCat dashboard."
-          : "Payments: add a webhook route."
+          : platform === "desktop"
+            ? "Payments: verify on your server — desktop apps can't hold secret keys."
+            : "Payments: add a webhook route."
       );
     }
     return gaps;
