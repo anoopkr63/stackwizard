@@ -20,7 +20,7 @@ const FAQS = [
   },
   {
     q: "What if I pick the wrong option?",
-    a: "Change the dropdown and the commands regenerate instantly — nothing is installed by choosing. Your address bar always holds the current setup as a share link, so no pick is permanent. Incompatible pairs (Mongoose without MongoDB, Supabase Auth with Firebase) go blank automatically.",
+    a: "Change the dropdown and the commands regenerate instantly — nothing is installed by choosing. Hit Copy share link and the address holds that exact setup, so no pick is permanent. Incompatible pairs (Mongoose without MongoDB, Supabase Auth with Firebase) go blank automatically.",
   },
   {
     q: "Does StackWizard touch my machine or need my passwords?",

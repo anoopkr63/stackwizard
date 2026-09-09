@@ -3,6 +3,26 @@ import type { WizardSelections } from "./types";
 
 type Bag = Record<string, unknown>;
 
+// Base64url without Node's Buffer — share links encode/decode inside a
+// client component, where Buffer doesn't exist. Same alphabet as before
+// (standard base64 with +→-, /→_, padding stripped), so links shared
+// earlier keep decoding.
+function encodeB64Url(json: string): string {
+  const bytes = new TextEncoder().encode(json);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+function decodeB64Url(raw: string): string {
+  const b64 = raw.replaceAll("-", "+").replaceAll("_", "/");
+  const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+  const bin = atob(padded);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
 // Drop every value that matches the defaults, so the link only carries
 // what the user actually picked. A fresh page encodes to "" (no ?s= at all).
 function stripDefaults(obj: Bag, def: Bag): Bag {
@@ -29,12 +49,7 @@ function stripDefaults(obj: Bag, def: Bag): Bag {
 export function encodeSelections(s: WizardSelections): string {
   const minimal = stripDefaults(s as unknown as Bag, defaultSelections() as unknown as Bag);
   if (!Object.keys(minimal).length) return "";
-  const json = JSON.stringify(minimal);
-  return Buffer.from(json, "utf8")
-    .toString("base64")
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replaceAll("=", "");
+  return encodeB64Url(JSON.stringify(minimal));
 }
 
 function asBag(v: unknown): Bag {
@@ -143,8 +158,7 @@ export function decodeRoute(combo: string | null): WizardSelections | null {
 export function decodeSelections(raw: string | null): WizardSelections | null {
   if (!raw) return null;
   try {
-    const b64 = raw.replaceAll("-", "+").replaceAll("_", "/");
-    const json = Buffer.from(b64, "base64").toString("utf8");
+    const json = decodeB64Url(raw);
     const parsed = JSON.parse(json);
     if (!parsed || typeof parsed !== "object") return null;
     // Minimal links only carry picks — everything else falls back to defaults.

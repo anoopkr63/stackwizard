@@ -435,20 +435,115 @@ export async function POST(req) {
   }
 }`;
 
-// ---- Service client stubs (wired, self-contained) ------------------------
+// Next.js-only: Clerk's required middleware (fresh scaffolds don't ship
+// one). The <ClerkProvider> wrap + sign-in buttons stay in the user's
+// layout — template-owned, never touched. Dep guaranteed via the Clerk pick.
+const STUB_CLERK_MIDDLEWARE = `import { clerkMiddleware } from "@clerk/nextjs/server";
+
+export default clerkMiddleware();
+
+export const config = {
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
+};`;
+
+// Next.js-only: Auth.js v5 config (GitHub provider, TODO for others).
+// Reads AUTH_SECRET + AUTH_GITHUB_ID/SECRET from .env.local — the same
+// keys the env step documents. Dep guaranteed via the NextAuth pick.
+const STUB_NEXTAUTH_LIB = `import NextAuth from "next-auth";
+import GitHub from "next-auth/providers/GitHub";
+
+export const { handlers, auth } = NextAuth({
+  providers: [GitHub],
+  // TODO: add more providers here — keys go in .env.local
+});`;
+
+// Next.js-only: the catch-all route that serves the Auth.js handlers.
+// Needs its dir (created by the Production folders step below).
+const STUB_NEXTAUTH_ROUTE = `import { handlers } from "@/lib/auth";
+
+export const { GET, POST } = handlers;`;
+
+// ---- Service server stubs (Next.js routes, secret stays server-side) ------
+// Next.js-only: order creation keeps RAZORPAY_KEY_SECRET server-side.
+// The browser never imports "razorpay" — it calls this route, then hands
+// the order to openRazorpayCheckout() in src/lib/razorpay.ts.
+const STUB_RAZORPAY_ORDER_TS = `import Razorpay from "razorpay";
+
+export async function POST(req: Request) {
+  const key_id = process.env.RAZORPAY_KEY_ID;
+  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!key_id || !key_secret) return new Response("Missing Razorpay keys", { status: 500 });
+  const { amount, currency } = (await req.json()) as { amount: number; currency?: string };
+  if (!amount || amount < 100) return new Response("Invalid amount (paise, min 100)", { status: 400 });
+  const rzp = new Razorpay({ key_id, key_secret });
+  const order = await rzp.orders.create({ amount, currency: currency ?? "INR", receipt: "rcpt_" + Date.now() });
+  return Response.json({ id: order.id, amount: order.amount, currency: order.currency });
+}`;
+
+const STUB_RAZORPAY_ORDER_JS = `import Razorpay from "razorpay";
+
+export async function POST(req) {
+  const key_id = process.env.RAZORPAY_KEY_ID;
+  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!key_id || !key_secret) return new Response("Missing Razorpay keys", { status: 500 });
+  const { amount, currency } = await req.json();
+  if (!amount || amount < 100) return new Response("Invalid amount (paise, min 100)", { status: 400 });
+  const rzp = new Razorpay({ key_id, key_secret });
+  const order = await rzp.orders.create({ amount, currency: currency ?? "INR", receipt: "rcpt_" + Date.now() });
+  return Response.json({ id: order.id, amount: order.amount, currency: order.currency });
+}`;
+
+// Next.js-only: verifies the payment signature with HMAC (zero-dep, node
+// crypto). Called by the frontend after the Razorpay popup succeeds.
+const STUB_RAZORPAY_VERIFY_TS = `import { createHmac } from "crypto";
+
+export async function POST(req: Request) {
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!secret) return new Response("Missing Razorpay secret", { status: 500 });
+  const { orderId, paymentId, signature } = (await req.json()) as {
+    orderId: string;
+    paymentId: string;
+    signature: string;
+  };
+  const expected = createHmac("sha256", secret).update(orderId + "|" + paymentId).digest("hex");
+  if (expected !== signature) return new Response("Bad signature", { status: 400 });
+  // TODO: fulfill the order here
+  return Response.json({ verified: true });
+}`;
+
+const STUB_RAZORPAY_VERIFY_JS = `import { createHmac } from "crypto";
+
+export async function POST(req) {
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!secret) return new Response("Missing Razorpay secret", { status: 500 });
+  const { orderId, paymentId, signature } = await req.json();
+  const expected = createHmac("sha256", secret).update(orderId + "|" + paymentId).digest("hex");
+  if (expected !== signature) return new Response("Bad signature", { status: 400 });
+  // TODO: fulfill the order here
+  return Response.json({ verified: true });
+}`;
 // Additive files under src/lib (never template-owned). Self-contained on
 // purpose: they inline the env check instead of importing ./env, so they
 // still work when the "Production folders" toggle is off.
 
 function serviceAccess(framework: string): string {
-  // Next.js reads process.env; every Vite-family UI reads import.meta.env.
+  // Next.js reads process.env; native runtimes (Expo / bare React Native /
+  // Ionic, per this repo's mobile env helper) also read process.env; every
+  // Vite-family web UI reads import.meta.env.
   if (framework === "nextjs") return "process.env[name]";
+  if (framework === "expo" || framework === "react-native" || framework === "ionic") return "process.env[name]";
   return "import.meta.env[name] as string | undefined";
 }
 
 // Frameworks whose env model the stubs below speak. Nuxt wants its module
-// (@nuxtjs/supabase), Angular wants environment files, mobile wants native
-// SDK wiring — those get notes, not stubs.
+// (@nuxtjs/supabase), Angular wants environment files — those get notes,
+// not stubs. Mobile is in: native-safe stubs only (Supabase with an
+// in-memory default, RevenueCat configure, Razorpay-native wrapper).
+// Stripe/Clerk/Auth0 stay notes-only on mobile — their wiring lives in
+// JSX providers and navigation, not a lib file.
 const SERVICE_STUB_FRAMEWORKS = [
   "nextjs",
   "react-vite",
@@ -458,6 +553,9 @@ const SERVICE_STUB_FRAMEWORKS = [
   "tauri",
   "electron",
   "wails",
+  "expo",
+  "react-native",
+  "ionic",
 ];
 
 function requiredFn(sel: WizardSelections): string {
@@ -491,6 +589,190 @@ ${requiredFn(sel)}
 export const stripePromise = loadStripe(required("${PUB}STRIPE_PUBLISHABLE_KEY"));`;
 }
 
+function firebaseStub(sel: WizardSelections): string {
+  const PUB = publicPrefix(sel.framework);
+  const app = sel.language === "typescript"
+    ? "const app = getApps().length ? getApps()[0]! : initializeApp({"
+    : "const app = getApps().length ? getApps()[0] : initializeApp({";
+  return `import { initializeApp, getApps } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+
+${requiredFn(sel)}
+
+${app}
+  apiKey: required("${PUB}FIREBASE_API_KEY"),
+  authDomain: required("${PUB}FIREBASE_AUTH_DOMAIN"),
+  projectId: required("${PUB}FIREBASE_PROJECT_ID"),
+  storageBucket: required("${PUB}FIREBASE_STORAGE_BUCKET"),
+  messagingSenderId: required("${PUB}FIREBASE_MESSAGING_SENDER_ID"),
+  appId: required("${PUB}FIREBASE_APP_ID"),
+});
+
+export const firebaseAuth = getAuth(app);
+export const firebaseDb = getFirestore(app);`;
+}
+
+// Razorpay's browser SDK is a <script> (checkout.js), not an npm import —
+// this loader keeps the client zero-dep. The secret stays in the Next.js
+// order/verify routes below, never in this file.
+function razorpayClientStub(sel: WizardSelections): string {
+  const PUB = publicPrefix(sel.framework);
+  const ts = sel.language === "typescript";
+  const win = ts ? "(window as any).Razorpay" : 'window["Razorpay"]';
+  const ctor = ts ? "new (window as any).Razorpay({" : 'new window["Razorpay"]({';
+  const sig = ts ? "(order: RazorpayOrder, prefill?: { name?: string; email?: string })" : "(order, prefill)";
+  const iface = ts
+    ? `export interface RazorpayOrder {
+  id: string;
+  amount: number;
+  currency: string;
+}
+
+`
+    : "";
+  return `${requiredFn(sel)}
+
+const CHECKOUT_JS = "https://checkout.razorpay.com/v1/checkout.js";
+
+function loadCheckoutJs() {
+  if (${win}) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = CHECKOUT_JS;
+    s.onload = () => resolve(undefined);
+    s.onerror = () => reject(new Error("Could not load Razorpay checkout.js"));
+    document.body.appendChild(s);
+  });
+}
+
+${iface}// Create the order on your server first (POST /api/payments/razorpay/order),
+// then pass it here to open the Razorpay popup.
+export async function openRazorpayCheckout${sig} {
+  await loadCheckoutJs();
+  const key = required("${PUB}RAZORPAY_KEY_ID");
+  const rzp = ${ctor}
+    key,
+    order_id: order.id,
+    amount: order.amount,
+    currency: order.currency,
+    prefill,
+  });
+  rzp.open();
+}`;
+}
+
+function paypalStub(sel: WizardSelections): string {
+  const PUB = publicPrefix(sel.framework);
+  return `import { loadScript } from "@paypal/paypal-js";
+
+${requiredFn(sel)}
+
+export function paypalScript() {
+  return loadScript({ clientId: required("${PUB}PAYPAL_CLIENT_ID"), currency: "USD" });
+}`;
+}
+
+function paddleStub(sel: WizardSelections): string {
+  const PUB = publicPrefix(sel.framework);
+  const envArg =
+    sel.language === "typescript"
+      ? 'required("${PUB}PADDLE_ENVIRONMENT") as "sandbox" | "production"'
+      : 'required("${PUB}PADDLE_ENVIRONMENT")';
+  return `import { initializePaddle } from "@paddle/paddle-js";
+
+${requiredFn(sel)}
+
+export function paddle() {
+  return initializePaddle({
+    token: required("${PUB}PADDLE_CLIENT_TOKEN"),
+    environment: ${envArg},
+  });
+}`;
+}
+
+// ---- Native stubs (mobile only) ------------------------------------------
+// Same rules as web: additive files under src/lib, self-contained env
+// check, dep-guaranteed imports. Anything needing JSX providers or native
+// config (StripeProvider, ClerkProvider) stays notes-only on purpose.
+
+// Supabase on native: detectSessionInUrl must be off (no browser
+// redirect). Sessions work in-memory out of the box; the AsyncStorage
+// lines stay commented until the user installs the package — an
+// uncommented import of a missing dep would break the build.
+function supabaseMobileStub(sel: WizardSelections): string {
+  const PUB = publicPrefix(sel.framework);
+  const storagePkg = `${pmCommands(sel.packageManager).add} @react-native-async-storage/async-storage`;
+  return `import { createClient } from "@supabase/supabase-js";
+// import AsyncStorage from "@react-native-async-storage/async-storage";
+
+${requiredFn(sel)}
+
+export const supabase = createClient(
+  required("${PUB}SUPABASE_URL"),
+  required("${PUB}SUPABASE_ANON_KEY"),
+  {
+    auth: {
+      // TODO: keep users logged in across restarts —
+      // 1. Run: ${storagePkg}
+      // 2. Uncomment the import above and the storage line below.
+      // storage: AsyncStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  }
+);`;
+}
+
+// RevenueCat on native (Expo / bare React Native): one configure call at
+// startup picks the store key per platform. Dep guaranteed via the pick.
+function revenuecatStub(sel: WizardSelections): string {
+  return `import Purchases from "react-native-purchases";
+import { Platform } from "react-native";
+
+${requiredFn(sel)}
+
+// Call once at startup (e.g. in your root layout) before showing paywalls.
+export async function configurePurchases() {
+  const apiKey =
+    Platform.OS === "ios" ? required("REVENUECAT_APPLE_API_KEY") : required("REVENUECAT_GOOGLE_API_KEY");
+  await Purchases.configure({ apiKey });
+}`;
+}
+
+// Razorpay on native (Expo dev client / bare React Native): thin wrapper
+// over the native module. The order still comes from your server — the
+// key secret never ships in the app. Dep guaranteed via the pick.
+function razorpayMobileStub(sel: WizardSelections): string {
+  const PUB = publicPrefix(sel.framework);
+  const ts = sel.language === "typescript";
+  const sig = ts ? "(order: RazorpayOrder, options?: Record<string, unknown>)" : "(order, options)";
+  const iface = ts
+    ? `export interface RazorpayOrder {
+  id: string;
+  amount: number;
+  currency: string;
+}
+
+`
+    : "";
+  return `import RazorpayCheckout from "react-native-razorpay";
+
+${requiredFn(sel)}
+
+${iface}// Create the order on your server first, then pass it here.
+export function openRazorpayCheckout${sig} {
+  return RazorpayCheckout.open({
+    key: required("${PUB}RAZORPAY_KEY_ID"),
+    order_id: order.id,
+    amount: order.amount,
+    currency: order.currency,
+    ...(options ?? {}),
+  });
+}`;
+}
+
 function libDir(framework: string): string {
   return framework === "wails" ? "frontend/src/lib" : "src/lib";
 }
@@ -506,14 +788,42 @@ export function isAddonLive(sel: WizardSelections, groupId: string, id: string):
 // Tauri v2 reads CSP from src-tauri/tauri.conf.json > app.security.csp.
 // The template ships null — merge a strict-enough CSP for the picked
 // services via node. Guarded: never fails setup.sh, never overwrites.
-function tauriCspSteps(supabase: boolean, stripe: boolean): { command: string; note: string }[] {
-  if (!supabase && !stripe) return [];
+function tauriCspSteps(flags: {
+  supabase: boolean;
+  stripe: boolean;
+  firebase: boolean;
+  razorpay: boolean;
+  paypal: boolean;
+  paddle: boolean;
+  clerk: boolean;
+  auth0: boolean;
+}): { command: string; note: string }[] {
+  const { supabase, stripe, firebase, razorpay, paypal, paddle, clerk, auth0 } = flags;
+  if (!supabase && !stripe && !firebase && !razorpay && !paypal && !paddle && !clerk && !auth0) return [];
   const connect = ["'self'"];
   if (supabase) connect.push("https://*.supabase.co", "wss://*.supabase.co");
   if (stripe) connect.push("https://api.stripe.com", "https://*.stripe.com");
+  if (firebase) connect.push("https://*.googleapis.com", "https://*.firebaseio.com", "wss://*.firebaseio.com");
+  if (razorpay) connect.push("https://api.razorpay.com");
+  if (paypal) connect.push("https://*.paypal.com");
+  if (paddle) connect.push("https://*.paddle.com");
+  if (clerk) connect.push("https://*.clerk.com", "https://*.clerk.accounts.dev");
+  if (auth0) connect.push("https://*.auth0.com");
   const script = ["'self'"];
   if (stripe) script.push("https://js.stripe.com");
-  const frame = stripe ? ["https://js.stripe.com", "https://hooks.stripe.com"] : [];
+  if (firebase) script.push("https://www.gstatic.com", "https://apis.google.com");
+  if (razorpay) script.push("https://checkout.razorpay.com");
+  if (paypal) script.push("https://www.paypal.com", "https://www.paypalobjects.com");
+  if (paddle) script.push("https://cdn.paddle.com");
+  if (clerk) script.push("https://*.clerk.com");
+  if (auth0) script.push("https://*.auth0.com");
+  const frame: string[] = [];
+  if (stripe) frame.push("https://js.stripe.com", "https://hooks.stripe.com");
+  if (razorpay) frame.push("https://api.razorpay.com");
+  if (paypal) frame.push("https://www.paypal.com", "https://www.sandbox.paypal.com");
+  if (paddle) frame.push("https://*.paddle.com");
+  if (clerk) frame.push("https://*.clerk.com");
+  if (auth0) frame.push("https://*.auth0.com");
   const csp =
     `default-src 'self'; connect-src ${connect.join(" ")}; ` +
     `img-src 'self' data: https:; script-src ${script.join(" ")}; ` +
@@ -552,8 +862,20 @@ function expandStructure(sel: WizardSelections): { command: string; note: string
   if (!dirs) return out; // unknown framework — skip silently
   const ts = sel.language === "typescript";
   const ext = ts ? "ts" : "js";
-  const stripe = (sel.addons.payments ?? "none") === "stripe";
-  const allDirs = stripe && sel.framework === "nextjs" ? [...dirs, "src/app/api/webhooks/stripe"] : dirs;
+  // Selection + liveness (a stale share-link value for a hidden option
+  // must never scaffold dirs or routes).
+  const stripe = (sel.addons.payments ?? "none") === "stripe" && isAddonLive(sel, "payments", "stripe");
+  const razorpay = (sel.addons.payments ?? "none") === "razorpay" && isAddonLive(sel, "payments", "razorpay");
+  const nextauth = (sel.addons.auth ?? "none") === "nextauth" && isAddonLive(sel, "auth", "nextauth");
+  const allDirs =
+    sel.framework === "nextjs"
+      ? [
+          ...dirs,
+          ...(stripe ? ["src/app/api/webhooks/stripe"] : []),
+          ...(razorpay ? ["src/app/api/payments/razorpay/order", "src/app/api/payments/razorpay/verify"] : []),
+          ...(nextauth ? ["src/app/api/auth/[...nextauth]"] : []),
+        ]
+      : dirs;
   out.push({
     command: `mkdir -p ${allDirs.map((d) => `"${d}"`).join(" ")}`,
     note: "Makes production folders",
@@ -569,6 +891,29 @@ function expandStructure(sel: WizardSelections): { command: string; note: string
       out.push({
         command: heredoc(`src/app/api/webhooks/stripe/route.${ext}`, ts ? STUB_STRIPE_WH_TS : STUB_STRIPE_WH_JS),
         note: "Catches Stripe events",
+      });
+    }
+    if (razorpay) {
+      out.push({
+        command: heredoc(
+          `src/app/api/payments/razorpay/order/route.${ext}`,
+          ts ? STUB_RAZORPAY_ORDER_TS : STUB_RAZORPAY_ORDER_JS
+        ),
+        note: "Creates Razorpay orders (secret stays server-side)",
+      });
+      out.push({
+        command: heredoc(
+          `src/app/api/payments/razorpay/verify/route.${ext}`,
+          ts ? STUB_RAZORPAY_VERIFY_TS : STUB_RAZORPAY_VERIFY_JS
+        ),
+        note: "Verifies Razorpay payments",
+      });
+    }
+    if (nextauth) {
+      out.push({
+        // Brackets are quoted — an unquoted glob would expand if the dir exists.
+        command: heredoc(`"src/app/api/auth/[...nextauth]/route.${ext}"`, STUB_NEXTAUTH_ROUTE),
+        note: "Serves the Auth.js API (sign-in, callback, session)",
       });
     }
   } else if (sel.framework === "react-vite" || sel.framework === "vue" || sel.framework === "solid") {
@@ -1116,6 +1461,16 @@ export function assemble(selections: WizardSelections): BuildStep[] {
     if (last && last.command === command) return; // dedupe exact repeats
     steps.push({ section, command, note });
   };
+  // Lib stubs heredoc into src/lib, which only exists when the Production
+  // folders toggle (or the template) created it — with the toggle off,
+  // `cat >` would die under `set -e` on a fresh scaffold. One idempotent
+  // mkdir per dir, emitted before the first stub that needs it.
+  const ensuredDirs = new Set<string>();
+  const ensureDir = (section: string, dir: string) => {
+    if (ensuredDirs.has(dir)) return;
+    ensuredDirs.add(dir);
+    push(section, `mkdir -p "${dir}"`, `Makes ${dir} (skipped if it exists)`);
+  };
 
   // 1 — project foundation
   const frameworkCat = catalog.categories.find((c) => c.id === "framework");
@@ -1256,34 +1611,155 @@ module.exports = {
         const ts = selections.language === "typescript";
         const ext = ts ? "ts" : "js";
         const section = `${4 + idx} · ${group.label}`;
+        const serverSideNote =
+          platform === "desktop"
+            ? " (publishable key only — secrets stay on a server)"
+            : " (publishable key only — secrets stay server-side)";
         if (groupId === "database" && opt.id === "supabase") {
-          push(section, heredoc(`${libDir(framework)}/supabase.${ext}`, supabaseStub(selections)), "Creates the Supabase client (reads your .env, throws naming what's missing)");
+          ensureDir(section, libDir(framework));
+          const mobile = platform === "mobile";
+          push(
+            section,
+            heredoc(
+              `${libDir(framework)}/supabase.${ext}`,
+              mobile ? supabaseMobileStub(selections) : supabaseStub(selections)
+            ),
+            mobile
+              ? "Creates the Supabase client for native (see the storage TODO to stay logged in)"
+              : "Creates the Supabase client (reads your .env, throws naming what's missing)"
+          );
+        }
+        // Firebase's web SDK speaks import.meta on Vite — wrong model for
+        // native runtimes, so mobile keeps install + env keys + notes.
+        if (groupId === "database" && opt.id === "firebase" && platform !== "mobile") {
+          ensureDir(section, libDir(framework));
+          push(section, heredoc(`${libDir(framework)}/firebase.${ext}`, firebaseStub(selections)), "Creates the Firebase app + auth + db (reads your .env, throws naming what's missing)");
         }
         if (groupId === "payments" && opt.id === "stripe" && platform !== "mobile") {
+          ensureDir(section, libDir(framework));
           push(
             section,
             heredoc(`${libDir(framework)}/stripe.${ext}`, stripeStub(selections)),
-            platform === "desktop"
-              ? "Creates the Stripe client (publishable key only — secrets stay on a server)"
-              : "Creates the Stripe client (publishable key only — secrets stay server-side)"
+            `Creates the Stripe client${serverSideNote}`
+          );
+        }
+        if (groupId === "payments" && opt.id === "razorpay" && platform !== "mobile") {
+          ensureDir(section, libDir(framework));
+          push(
+            section,
+            heredoc(`${libDir(framework)}/razorpay.${ext}`, razorpayClientStub(selections)),
+            `Opens the Razorpay popup (order comes from your server route${platform === "desktop" ? " — secrets stay on a server" : ""})`
+          );
+        }
+        if (groupId === "payments" && opt.id === "paypal" && platform !== "mobile") {
+          ensureDir(section, libDir(framework));
+          push(
+            section,
+            heredoc(`${libDir(framework)}/paypal.${ext}`, paypalStub(selections)),
+            `Loads the PayPal buttons script${serverSideNote}`
+          );
+        }
+        if (groupId === "payments" && opt.id === "paddle" && platform !== "mobile") {
+          ensureDir(section, libDir(framework));
+          push(
+            section,
+            heredoc(`${libDir(framework)}/paddle.${ext}`, paddleStub(selections)),
+            "Initializes Paddle (reads your .env, throws naming what's missing)"
+          );
+        }
+        // Native payments (Expo / bare React Native — Ionic uses Capacitor,
+        // not these native modules, so it keeps notes). Stripe stays
+        // notes-only everywhere on mobile: it needs a <StripeProvider> wrap
+        // in template-owned JSX, not a lib file.
+        if (
+          groupId === "payments" &&
+          opt.id === "revenuecat" &&
+          platform === "mobile" &&
+          (framework === "expo" || framework === "react-native")
+        ) {
+          ensureDir(section, libDir(framework));
+          push(
+            section,
+            heredoc(`${libDir(framework)}/purchases.${ext}`, revenuecatStub(selections)),
+            "Configures RevenueCat (call configurePurchases() once at startup)"
+          );
+        }
+        if (
+          groupId === "payments" &&
+          opt.id === "razorpay" &&
+          platform === "mobile" &&
+          (framework === "expo" || framework === "react-native")
+        ) {
+          ensureDir(section, libDir(framework));
+          push(
+            section,
+            heredoc(`${libDir(framework)}/razorpay.${ext}`, razorpayMobileStub(selections)),
+            "Opens Razorpay checkout (order comes from your server)"
+          );
+        }
+        // Auth providers with real wiring (Next.js only — other frameworks
+        // keep the install + env keys + notes, since their wiring lives in
+        // template-owned files).
+        if (groupId === "auth" && opt.id === "clerk" && framework === "nextjs") {
+          push(
+            section,
+            heredoc("src/middleware.ts", STUB_CLERK_MIDDLEWARE),
+            "Protects routes with Clerk (then wrap your layout in <ClerkProvider>)"
+          );
+        }
+        if (groupId === "auth" && opt.id === "nextauth" && framework === "nextjs") {
+          ensureDir(section, libDir(framework));
+          push(
+            section,
+            heredoc(`${libDir(framework)}/auth.${ext}`, STUB_NEXTAUTH_LIB),
+            "Configures Auth.js (GitHub provider — keys already in your .env)"
           );
         }
       }
     }
-    // Supabase Auth without the Supabase database still needs the client
-    // (and only when the auth pick itself is live, not a stale value).
+    // Firebase Auth without the Firebase database still needs the app client.
+    // Selection equality matters here, not just visibility — otherwise any
+    // auth pick (e.g. Clerk) with no database would emit a stray client.
     if (
       groupId === "auth" &&
+      (selections.addons.auth ?? "none") === "firebase-auth" &&
+      platform !== "mobile" &&
+      isAddonLive(selections, "auth", "firebase-auth") &&
+      SERVICE_STUB_FRAMEWORKS.includes(framework) &&
+      !isAddonLive(selections, "database", selections.addons.database || "none")
+    ) {
+      const ts = selections.language === "typescript";
+      const ext = ts ? "ts" : "js";
+      ensureDir(`${4 + idx} · ${group.label}`, libDir(framework));
+      push(
+        `${4 + idx} · ${group.label}`,
+        heredoc(`${libDir(framework)}/firebase.${ext}`, firebaseStub(selections)),
+        "Creates the Firebase app + auth (reads your .env, throws naming what's missing)"
+      );
+    }
+    // Supabase Auth without the Supabase database still needs the client.
+    // Selection equality matters here, not just visibility — otherwise any
+    // auth pick (e.g. Clerk) with no database would emit a stray client.
+    if (
+      groupId === "auth" &&
+      (selections.addons.auth ?? "none") === "supabase-auth" &&
       isAddonLive(selections, "auth", "supabase-auth") &&
       SERVICE_STUB_FRAMEWORKS.includes(framework) &&
       !isAddonLive(selections, "database", selections.addons.database || "none")
     ) {
       const ts = selections.language === "typescript";
       const ext = ts ? "ts" : "js";
+      ensureDir(`${4 + idx} · ${group.label}`, libDir(framework));
+      const mobile = (selections.platform ?? "web") === "mobile";
       push(
         `${4 + idx} · ${group.label}`,
-        heredoc(`${libDir(framework)}/supabase.${ext}`, supabaseStub(selections)),
-        "Creates the Supabase client (reads your .env, throws naming what's missing)"
+        heredoc(
+          `${libDir(framework)}/supabase.${ext}`,
+          mobile ? supabaseMobileStub(selections) : supabaseStub(selections)
+        ),
+        mobile
+          ? "Creates the Supabase client for native (see the storage TODO to stay logged in)"
+          : "Creates the Supabase client (reads your .env, throws naming what's missing)"
       );
     }
     // Test-script step stays inside the Testing group (numeric order).
@@ -1345,13 +1821,30 @@ module.exports = {
   // Tauri CSP — the template ships csp: null. Merge a strict-enough policy
   // for the picked services (guarded merge, never overwrites, never fails).
   if (framework === "tauri") {
-    const hasSupabase =
-      isAddonLive(selections, "database", "supabase") || isAddonLive(selections, "auth", "supabase-auth");
-    const hasStripe = isAddonLive(selections, "payments", "stripe");
-    if (hasSupabase || hasStripe) {
+    // Live pick per group ("none" when nothing picked or the value is stale/
+    // hidden) — visibility alone is not enough, an unpicked but visible
+    // option must not widen the CSP.
+    const livePick = (groupId: string): string => {
+      const id = selections.addons[groupId] || "none";
+      return isAddonLive(selections, groupId, id) ? id : "none";
+    };
+    const db = livePick("database");
+    const auth = livePick("auth");
+    const payments = livePick("payments");
+    const flags = {
+      supabase: db === "supabase" || auth === "supabase-auth",
+      stripe: payments === "stripe",
+      firebase: db === "firebase" || auth === "firebase-auth",
+      razorpay: payments === "razorpay",
+      paypal: payments === "paypal",
+      paddle: payments === "paddle",
+      clerk: auth === "clerk",
+      auth0: auth === "auth0",
+    };
+    if (Object.values(flags).some(Boolean)) {
       const used = steps.map((s) => parseInt(s.section, 10)).filter((n) => !Number.isNaN(n));
       const cspNo = (used.length ? Math.max(...used) : 3) + 1;
-      for (const s of tauriCspSteps(hasSupabase, hasStripe)) {
+      for (const s of tauriCspSteps(flags)) {
         push(`${cspNo} · Desktop security`, s.command, s.note);
       }
     }

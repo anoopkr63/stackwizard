@@ -141,8 +141,9 @@ export default function Wizard() {
     setCopiedGroup(null);
   }
 
-  // Commands scaffold; they don't write app code. Name exactly what's left
-  // so the user isn't surprised after the last command runs.
+  // Commands scaffold + write wired service clients; they don't write app
+  // code. Name exactly what's left so the user isn't surprised after the
+  // last command runs.
   const codeGaps = useMemo(() => {
     const gaps: string[] = [];
     if ((sel.addons.backend || "none") !== "none") {
@@ -151,22 +152,36 @@ export default function Wizard() {
       );
     }
     if ((sel.addons.auth || "none") !== "none") {
+      const auth = sel.addons.auth || "none";
       gaps.push(
         platform === "mobile"
           ? "Login: wire the provider SDK into your navigation."
           : platform === "desktop"
             ? "Login: wire the provider SDK into your app window."
-            : "Login: add callback route + session check."
+            : auth === "clerk" && sel.framework === "nextjs"
+              ? "Login: wrap your layout in <ClerkProvider> + add sign-in buttons."
+              : auth === "nextauth"
+                ? "Login: add your OAuth credentials + check the session with auth()."
+                : "Login: add callback route + session check."
       );
     }
     const pay = sel.addons.payments || "none";
     if (pay !== "none" && pay !== "lemonsqueezy") {
+      // Stripe + Razorpay on Next.js already scaffold their server routes
+      // (webhook / order + verify) when Production folders is on — the gap
+      // is fulfillment, not plumbing.
+      const routeIncluded =
+        sel.framework === "nextjs" && sel.toggles.structure && (pay === "stripe" || pay === "razorpay");
       gaps.push(
         pay === "revenuecat"
           ? "Payments: connect App Store / Play in the RevenueCat dashboard."
           : platform === "desktop"
             ? "Payments: verify on your server — desktop apps can't hold secret keys."
-            : "Payments: add a webhook route."
+            : platform === "mobile"
+              ? "Payments: verify purchases on your server — never trust the client alone."
+              : routeIncluded
+                ? "Payments: fulfill orders in the generated route (TODO inside)."
+                : "Payments: add a webhook route."
       );
     }
     return gaps;

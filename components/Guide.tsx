@@ -126,11 +126,11 @@ export default function Guide() {
         </Reveal>
         <Reveal delay={120}>
           <div className={card}>
-            <h3 className="display text-xl font-semibold">Share</h3>
-            <p className="mt-2 leading-relaxed text-muted">
-              The page address matches your answers. Send it to a friend — they get your
-              exact steps.
-            </p>
+              <h3 className="display text-xl font-semibold">Share</h3>
+              <p className="mt-2 leading-relaxed text-muted">
+                Hit Copy share link above — the address then holds your exact
+                setup. Send it to a friend and they get your steps.
+              </p>
           </div>
         </Reveal>
         <Reveal delay={180}>
