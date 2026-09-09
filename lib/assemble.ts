@@ -78,8 +78,16 @@ function envBlocks(sel: WizardSelections): { lines: string[]; services: string[]
   const services: string[] = [];
   const PUB = publicPrefix(sel.framework);
   const platform = sel.platform ?? "web";
-  const database = sel.addons.database ?? "none";
-  const auth = sel.addons.auth ?? "none";
+  // Only emit keys for picks that actually install: a raw addon id can name an
+  // option the current platform/framework hides (e.g. firebase-auth alongside
+  // a Supabase database). Installs skip those via isOptionVisible — so does this.
+  const live = (groupId: string, id: string): boolean => {
+    if (id === "none") return false;
+    const opt = addons.groups.find((g) => g.id === groupId)?.options?.find((o) => o.id === id);
+    return !!opt && isOptionVisible(opt, sel);
+  };
+  const database = live("database", sel.addons.database ?? "none") ? sel.addons.database! : "none";
+  const auth = live("auth", sel.addons.auth ?? "none") ? sel.addons.auth! : "none";
   const payments = sel.addons.payments ?? "none";
   const orm = sel.addons.orm ?? "none";
 
