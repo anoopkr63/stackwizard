@@ -687,8 +687,8 @@ function devCommand(
         command: "ionic serve",
         note:
           target === "ios"
-            ? "Serves your iPhone app in the browser"
-            : "Serves your Android app in the browser",
+            ? "Serves your iPhone app in the browser (first time: npm i -g @ionic/cli)"
+            : "Serves your Android app in the browser (first time: npm i -g @ionic/cli)",
       };
   }
   if (platform === "desktop") {
