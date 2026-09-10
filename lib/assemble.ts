@@ -439,6 +439,63 @@ export async function POST(req) {
   }
 }`;
 
+// ---- Supabase Edge Functions (Deno) for Stripe ---------------------------
+// For stacks without API routes (anything but Next.js): the secret keys in
+// .env can never run in the browser, so charging + webhooks live here.
+// Deploy: supabase functions deploy create-checkout --no-verify-jwt
+// Secrets: supabase secrets set STRIPE_SECRET_KEY=sk_... STRIPE_WEBHOOK_SECRET=whsec_...
+// Call from your app: await supabase.functions.invoke("create-checkout", { body: { priceId } })
+const STUB_EDGE_CHECKOUT = `// Creates a Stripe Checkout Session — your secret key stays on the server.
+// Deploy once: supabase functions deploy create-checkout --no-verify-jwt
+// Secrets (dashboard or CLI): STRIPE_SECRET_KEY
+// From your app: const { data } = await supabase.functions.invoke("create-checkout", { body: { priceId } });
+// Then redirect to data.url (web) or open it in the browser (desktop).
+import Stripe from "https://esm.sh/stripe@14?target=deno";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+
+serve(async (req) => {
+  if (req.method !== "POST") return new Response("Use POST", { status: 405 });
+  const secret = Deno.env.get("STRIPE_SECRET_KEY");
+  if (!secret) return new Response("Missing STRIPE_SECRET_KEY", { status: 500 });
+  const stripe = new Stripe(secret, { httpClient: Stripe.createFetchHttpClient() });
+  const { priceId, successUrl, cancelUrl } = await req.json().catch(() => ({}));
+  if (!priceId) return new Response("Missing priceId", { status: 400 });
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: successUrl ?? "http://localhost:1420/success",
+    cancel_url: cancelUrl ?? "http://localhost:1420/cancelled",
+  });
+  return Response.json({ id: session.id, url: session.url });
+});`;
+
+const STUB_EDGE_WEBHOOK = `// Catches Stripe events (checkout.session.completed and friends).
+// Deploy once WITHOUT JWT verification — Stripe sends no JWT:
+//   supabase functions deploy stripe-webhook --no-verify-jwt
+// Secrets (dashboard or CLI): STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET
+// Dashboard → Developers → Webhooks → add the function URL, select events.
+import Stripe from "https://esm.sh/stripe@14?target=deno";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+
+serve(async (req) => {
+  const secret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+  if (!secret) return new Response("Missing STRIPE_WEBHOOK_SECRET", { status: 500 });
+  const sig = req.headers.get("stripe-signature");
+  if (!sig) return new Response("Missing signature", { status: 400 });
+  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
+    httpClient: Stripe.createFetchHttpClient(),
+  });
+  try {
+    const event = await stripe.webhooks.constructEventAsync(await req.text(), sig, secret);
+    if (event.type === "checkout.session.completed") {
+      // TODO: fulfill the order here (e.g. update your Supabase tables)
+    }
+    return Response.json({ received: true });
+  } catch {
+    return new Response("Bad signature", { status: 400 });
+  }
+});`;
+
 // Next.js-only: Clerk's required middleware (fresh scaffolds don't ship
 // one). The <ClerkProvider> wrap + sign-in buttons stay in the user's
 // layout — template-owned, never touched. Dep guaranteed via the Clerk pick.
@@ -529,9 +586,10 @@ export async function POST(req) {
   // TODO: fulfill the order here
   return Response.json({ verified: true });
 }`;
-// Additive files under src/lib (never template-owned). Self-contained on
-// purpose: they inline the env check instead of importing ./env, so they
-// still work when the "Production folders" toggle is off.
+// Additive files under src/lib (never template-owned). Stubs share one
+// `required` helper from ./env (always co-emitted below, so they still work
+// when the "Production folders" toggle is off). SvelteKit is the exception:
+// it has no env file, so its stubs carry the $env check inline.
 
 function serviceAccess(framework: string, language: string): string {
   // Next.js inlines NEXT_PUBLIC_* into process.env; native runtimes (Expo /
@@ -566,13 +624,25 @@ const SERVICE_STUB_FRAMEWORKS = [
   "ionic",
 ];
 
+// The env helper matching the framework's env model — co-emitted with the
+// service stubs so `import { required } from "./env"` never dangles.
+function envStubFor(sel: WizardSelections): string {
+  const ts = sel.language === "typescript";
+  if (sel.framework === "nextjs") return ts ? STUB_ENV_TS : STUB_ENV_JS;
+  if (sel.framework === "expo" || sel.framework === "react-native") return ts ? STUB_ENV_MOBILE_TS : STUB_ENV_MOBILE_JS;
+  return ts ? STUB_ENV_VITE_TS : STUB_ENV_VITE_JS;
+}
+
 function requiredFn(sel: WizardSelections): string {
+  // One shared helper (./env, co-emitted) — no copies in every stub.
+  // SvelteKit has no env file, so its stubs carry the $env check inline
+  // (hoisted ESM import stays valid after the package import above).
+  if (sel.framework !== "sveltekit") return `import { required } from "./env";`;
   const ts = sel.language === "typescript";
   const sig = ts ? "(name: string): string" : "(name)";
-  // SvelteKit's PUBLIC_* vars live in $env/dynamic/public — hoisted ESM
-  // import, so it stays valid embedded after the package import above.
-  const envImport = sel.framework === "sveltekit" ? `import { env } from "$env/dynamic/public";\n\n` : "";
-  return `${envImport}function required${sig} {
+  return `import { env } from "$env/dynamic/public";
+
+function required${sig} {
   const value = ${serviceAccess(sel.framework, sel.language)};
   if (!value) throw new Error("Missing env: " + name + " — add it to ${envFileFor(sel.framework)}");
   return value;
@@ -1189,7 +1259,11 @@ const STUB_POSTCSS = `export default {
 
 const STUB_TAILWIND_CSS = `@import "tailwindcss";`;
 
-function tailwindCommands(pm: PackageManagerId, framework: string): { commands: string[]; notes: string[] } {
+function tailwindCommands(
+  pm: PackageManagerId,
+  framework: string,
+  language: string
+): { commands: string[]; notes: string[] } {
   if (framework === "nextjs") {
     return {
       commands: [],
@@ -1224,6 +1298,51 @@ function tailwindCommands(pm: PackageManagerId, framework: string): { commands: 
       `[ -f "src/routes/+layout.svelte" ] || cat > src/routes/+layout.svelte <<'EOF'\n<script>\n  import "../app.css";\n  let { children } = $props();\n</script>\n\n{@render children()}\nEOF`
     );
     notes.push("Creates the root layout importing app.css (skipped if you have one — then import ../app.css there yourself)");
+    return { commands, notes };
+  }
+  if (framework === "react-vite" || framework === "tauri") {
+    // Vite React templates ship a demo App + App.css that fights Tailwind
+    // (and a main entry with the CSS import buried). Replace both with a
+    // clean starter — full overwrites, so template drift can't break them.
+    const ts = language === "typescript";
+    const jtsx = ts ? "tsx" : "jsx";
+    const appLabel = framework === "tauri" ? "Tauri + React + Tailwind" : "React + Vite + Tailwind";
+    commands.push(
+      heredoc(
+        `src/App.${jtsx}`,
+        `export default function App() {
+  return (
+    <main className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-8">
+      <div className="max-w-md text-center space-y-4">
+        <h1 className="text-3xl font-bold">${appLabel}</h1>
+        <p className="text-zinc-400">
+          Your StackWizard app is running. Edit <code>src/App.${jtsx}</code> to start building.
+        </p>
+      </div>
+    </main>
+  );
+}`
+      ),
+      heredoc(
+        `src/main.${jtsx}`,
+        `import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App";
+
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);`
+      ),
+      `rm -f src/App.css`
+    );
+    notes.push(
+      "Replaces the demo App with a Tailwind starter (no App.css import)",
+      "Rewrites the entry so the CSS import stays on top",
+      "Deletes the template App.css (it fights Tailwind)"
+    );
     return { commands, notes };
   }
   // Entry file per framework (Solid boots from index.tsx, Vue from main.ts).
@@ -1505,9 +1624,17 @@ export function assemble(selections: WizardSelections): BuildStep[] {
   // mkdir per dir, emitted before the first stub that needs it.
   const ensuredDirs = new Set<string>();
   const ensureDir = (section: string, dir: string) => {
-    if (ensuredDirs.has(dir)) return;
-    ensuredDirs.add(dir);
-    push(section, `mkdir -p "${dir}"`, `Makes ${dir} (skipped if it exists)`);
+    if (!ensuredDirs.has(dir)) {
+      ensuredDirs.add(dir);
+      push(section, `mkdir -p "${dir}"`, `Makes ${dir} (skipped if it exists)`);
+    }
+    // Service stubs do `import { required } from "./env"` — co-emit that
+    // helper here (byte-identical to the Production-folders step, so the
+    // dedupe below collapses the pair when both run). SvelteKit stubs carry
+    // the $env check inline instead — no env file exists there.
+    if (selections.framework === "sveltekit") return;
+    const ext = selections.language === "typescript" ? "ts" : "js";
+    push(section, heredoc(`${dir}/env.${ext}`, envStubFor(selections)), "Reads env with clear errors");
   };
 
   // 1 — project foundation
@@ -1538,7 +1665,7 @@ export function assemble(selections: WizardSelections): BuildStep[] {
       // Next.js already includes Tailwind — there is nothing to run, so emit
       // zero commands (never a fake "# ..." comment line in the copy output).
       if (styling === "tailwind" && framework !== "nextjs") {
-        const tw = tailwindCommands(pm, framework);
+        const tw = tailwindCommands(pm, framework, language);
         tw.commands.forEach((cmd, i) => push("2 · Add styling", cmd, tw.notes[i] ?? ""));
       }
     } else {
@@ -1707,6 +1834,30 @@ module.exports = {
             heredoc(`${libDir(framework)}/stripe.${ext}`, stripeStub(selections)),
             `Creates the Stripe client${serverSideNote}`
           );
+          // Stacks without API routes can't charge or catch webhooks in the
+          // app — the secrets in .env need a server. With Supabase picked,
+          // that server is two Edge Functions (Next.js already got a webhook
+          // route above, so it skips this).
+          const hasSupabase =
+            (selections.addons.database === "supabase" && isAddonLive(selections, "database", "supabase")) ||
+            (selections.addons.auth === "supabase-auth" && isAddonLive(selections, "auth", "supabase-auth"));
+          if (framework !== "nextjs" && hasSupabase) {
+            push(
+              section,
+              `mkdir -p "supabase/functions/create-checkout" "supabase/functions/stripe-webhook"`,
+              "Makes the edge-function folders"
+            );
+            push(
+              section,
+              heredoc("supabase/functions/create-checkout/index.ts", STUB_EDGE_CHECKOUT),
+              "Creates Checkout Sessions on your server (deploy with supabase functions deploy)"
+            );
+            push(
+              section,
+              heredoc("supabase/functions/stripe-webhook/index.ts", STUB_EDGE_WEBHOOK),
+              "Catches Stripe events on your server (deploy with --no-verify-jwt)"
+            );
+          }
         }
         if (groupId === "payments" && opt.id === "razorpay" && platform !== "mobile") {
           ensureDir(section, libDir(framework));
@@ -1915,6 +2066,40 @@ module.exports = {
         push(`${cspNo} · Desktop security`, s.command, s.note);
       }
     }
+    // The template's beforeDevCommand/beforeBuildCommand say `npm run …`
+    // even when scaffolded with another manager — Tauri would shell out to
+    // npm on every `tauri dev`. Repoint at the picked manager (guarded:
+    // never touches values the user already changed, never fails setup.sh).
+    if (pm !== "npm") {
+      const used = steps.map((s) => parseInt(s.section, 10)).filter((n) => !Number.isNaN(n));
+      const secNo = (used.length ? Math.max(...used) : 3) + 1;
+      const patcher = `const fs = require("fs");
+const p = "src-tauri/tauri.conf.json";
+try {
+  const j = JSON.parse(fs.readFileSync(p, "utf8"));
+  j.build = j.build || {};
+  if (!j.build.beforeDevCommand || j.build.beforeDevCommand === "npm run dev") {
+    j.build.beforeDevCommand = "${pm} run dev";
+  }
+  if (!j.build.beforeBuildCommand || j.build.beforeBuildCommand === "npm run build") {
+    j.build.beforeBuildCommand = "${pm} run build";
+  }
+  fs.writeFileSync(p, JSON.stringify(j, null, 2) + "\\n");
+  console.log("Tauri commands point at ${pm}");
+} catch (e) {
+  console.log("Could not update tauri.conf.json (" + e.message + ") — set build.beforeDevCommand by hand");
+}`;
+      push(
+        `${secNo} · Desktop security`,
+        heredoc("tauri-pm.cjs", patcher),
+        "Writes a one-time Tauri patch script (template config is never hand-edited)"
+      );
+      push(
+        `${secNo} · Desktop security`,
+        "node tauri-pm.cjs; rm -f tauri-pm.cjs",
+        `Points Tauri at ${pm} run dev/build (template defaults to npm)`
+      );
+    }
   }
 
   // Keys step — one env file with placeholders for every key the picks need
@@ -1999,12 +2184,14 @@ const RUN_SECTIONS = ["See it running", "Run your backend"];
 // Scaffolds that stop and ask questions mid-run (project name, options…).
 // `yes ""` answers them all with defaults so the script never hangs.
 // Already non-interactive commands (--yes) and plain `npm start`-style
-// lines are excluded. Only the first line counts — heredoc bodies often
-// contain "create"/"init" (createClient, initializeApp) and must not match.
+// lines are excluded. Only the first line counts (heredoc bodies often
+// contain "create"/"init"), and create/init must appear as their own token —
+// a path like supabase/functions/create-checkout must not match.
 function needsAutoYes(cmd: string): boolean {
   if (cmd.includes("--yes")) return false;
   const head = cmd.split("\n")[0];
-  return /(create|init|nuxi|@angular\/cli|@nestjs\/cli new|@ionic\/cli)/i.test(head);
+  if (/(^|\s)(create|init)(-|$|\s)/i.test(head)) return true;
+  return /(nuxi|@angular\/cli|@nestjs\/cli new|@ionic\/cli)/i.test(head);
 }
 
 // Folder the scaffold creates — the first plain `cd <dir>` step names it
