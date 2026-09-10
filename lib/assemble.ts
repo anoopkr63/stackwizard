@@ -189,7 +189,11 @@ function envBlocks(sel: WizardSelections): { lines: string[]; services: string[]
     lines.push(
       "",
       "# Stripe — dashboard.stripe.com/test/apikeys for keys, /test/webhooks for the secret",
-      "# Webhook secret for local dev: run `stripe listen --forward-to localhost:3000/api/webhooks/stripe`",
+      // Only Next.js gets a webhook route from this setup — everyone else
+      // points the dashboard at their own server, so say that instead.
+      sel.framework === "nextjs"
+        ? "# Webhook secret for local dev: run `stripe listen --forward-to localhost:3000/api/webhooks/stripe`"
+        : "# Webhook secret: point a Stripe webhook at your server — the secret stays there, never in this file.",
       serverOnlyNote,
       "STRIPE_SECRET_KEY=sk_test_51Hxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       `${PUB}STRIPE_PUBLISHABLE_KEY=pk_test_51Hxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`,
@@ -529,13 +533,17 @@ export async function POST(req) {
 // purpose: they inline the env check instead of importing ./env, so they
 // still work when the "Production folders" toggle is off.
 
-function serviceAccess(framework: string): string {
-  // Next.js reads process.env; native runtimes (Expo / bare React Native /
-  // Ionic, per this repo's mobile env helper) also read process.env; every
-  // Vite-family web UI reads import.meta.env.
+function serviceAccess(framework: string, language: string): string {
+  // Next.js inlines NEXT_PUBLIC_* into process.env; native runtimes (Expo /
+  // bare React Native, per this repo's mobile env helper) read process.env;
+  // SvelteKit exposes PUBLIC_* only via $env/dynamic/public (import.meta
+  // holds VITE_* there, so import.meta.env[PUBLIC_*] is always undefined);
+  // every Vite-family UI (incl. Ionic React) reads import.meta.env.
+  // The `as` cast is TS-only — emitting it into a .js stub is a SyntaxError.
   if (framework === "nextjs") return "process.env[name]";
-  if (framework === "expo" || framework === "react-native" || framework === "ionic") return "process.env[name]";
-  return "import.meta.env[name] as string | undefined";
+  if (framework === "expo" || framework === "react-native") return "process.env[name]";
+  if (framework === "sveltekit") return "env[name]";
+  return language === "typescript" ? "import.meta.env[name] as string | undefined" : "import.meta.env[name]";
 }
 
 // Frameworks whose env model the stubs below speak. Nuxt wants its module
@@ -561,8 +569,11 @@ const SERVICE_STUB_FRAMEWORKS = [
 function requiredFn(sel: WizardSelections): string {
   const ts = sel.language === "typescript";
   const sig = ts ? "(name: string): string" : "(name)";
-  return `function required${sig} {
-  const value = ${serviceAccess(sel.framework)};
+  // SvelteKit's PUBLIC_* vars live in $env/dynamic/public — hoisted ESM
+  // import, so it stays valid embedded after the package import above.
+  const envImport = sel.framework === "sveltekit" ? `import { env } from "$env/dynamic/public";\n\n` : "";
+  return `${envImport}function required${sig} {
+  const value = ${serviceAccess(sel.framework, sel.language)};
   if (!value) throw new Error("Missing env: " + name + " — add it to ${envFileFor(sel.framework)}");
   return value;
 }`;
@@ -916,8 +927,8 @@ function expandStructure(sel: WizardSelections): { command: string; note: string
         note: "Serves the Auth.js API (sign-in, callback, session)",
       });
     }
-  } else if (sel.framework === "react-vite" || sel.framework === "vue" || sel.framework === "solid") {
-    // Vite-based UIs share the import.meta env helper.
+  } else if (sel.framework === "react-vite" || sel.framework === "vue" || sel.framework === "solid" || sel.framework === "ionic") {
+    // Vite-based UIs share the import.meta env helper (Ionic React is Vite-based).
     out.push({ command: heredoc(`src/lib/env.${ext}`, ts ? STUB_ENV_VITE_TS : STUB_ENV_VITE_JS), note: "Reads env with clear errors" });
   } else if (sel.framework === "nuxt") {
     // Additive server route — nuxt.config and app.vue are never touched.
@@ -928,7 +939,7 @@ function expandStructure(sel: WizardSelections): { command: string; note: string
   } else if (sel.framework === "angular") {
     // Folders only — environments use Angular's environment files and
     // app.config is template-owned, so no stub is emitted here.
-  } else if (sel.framework === "expo" || sel.framework === "react-native" || sel.framework === "ionic") {
+  } else if (sel.framework === "expo" || sel.framework === "react-native") {
     // Mobile: folders + one zero-import helper in a new path. No stubs into
     // template-owned files (layouts, tabs, native dirs) — those are never
     // overwritten, so SDK/template drift can't break the scaffold.
@@ -1036,8 +1047,20 @@ function ciInstall(pm: PackageManagerId): { install: string; build: string; imag
   }
 }
 
-function githubCiFile(pm: PackageManagerId): string {
+// Not every scaffold ships a `build` script (Expo, bare React Native,
+// Electron Forge) — CI that runs it goes red on the first push. null means
+// install-only (still catches dependency rot on every push).
+function ciBuild(pm: PackageManagerId, platform: PlatformId, framework: string): string | null {
+  if (platform === "mobile" && framework !== "ionic") return null;
+  if (framework === "electron") return null;
+  return ciInstall(pm).build;
+}
+
+function githubCiFile(pm: PackageManagerId, platform: PlatformId = "web", framework = ""): string {
   const c = ciInstall(pm);
+  // Wails keeps its package.json under frontend/ — run everything there.
+  const cd = framework === "wails" ? "cd frontend && " : "";
+  const build = ciBuild(pm, platform, framework);
   return [
     "cat > .github/workflows/node-ci.yml <<'EOF'",
     "name: CI",
@@ -1050,21 +1073,23 @@ function githubCiFile(pm: PackageManagerId): string {
     "    steps:",
     "      - uses: actions/checkout@v5",
     c.setup,
-    `      - run: ${c.install}`,
-    `      - run: ${c.build}`,
+    `      - run: ${cd}${c.install}`,
+    ...(build ? [`      - run: ${cd}${build}`] : []),
     "EOF",
   ].join("\n");
 }
 
-function gitlabCiFile(pm: PackageManagerId): string {
+function gitlabCiFile(pm: PackageManagerId, platform: PlatformId = "web", framework = ""): string {
   const c = ciInstall(pm);
+  const cd = framework === "wails" ? "cd frontend && " : "";
+  const build = ciBuild(pm, platform, framework);
   return [
     "cat > .gitlab-ci.yml <<'EOF'",
     `image: ${c.image}`,
     "build:",
     "  script:",
-    `    - ${c.install}`,
-    `    - ${c.build}`,
+    `    - ${cd}${c.install}`,
+    ...(build ? [`    - ${cd}${build}`] : []),
     "EOF",
   ].join("\n");
 }
@@ -1174,8 +1199,10 @@ function tailwindCommands(pm: PackageManagerId, framework: string): { commands: 
   const t = pmCommands(pm);
   // Wails keeps its UI under frontend/ — every emitted path matches that layout.
   const root = framework === "wails" ? "frontend/" : "";
-  // CSS entry per template layout (create-vue keeps it under assets/).
-  const cssRel = framework === "vue" ? "src/assets/main.css" : "src/index.css";
+  // CSS entry per template layout (create-vue keeps it under assets/,
+  // SvelteKit loads global CSS through the root layout as app.css).
+  const cssRel =
+    framework === "vue" ? "src/assets/main.css" : framework === "sveltekit" ? "src/app.css" : "src/index.css";
   const cssPath = `${root}${cssRel}`;
   // Import spec relative to the entry file's own dir (both live under src/).
   const spec = `./${cssRel.replace(/^src\//, "")}`;
@@ -1189,6 +1216,16 @@ function tailwindCommands(pm: PackageManagerId, framework: string): { commands: 
     "Wires Tailwind into PostCSS (new file — your vite config is untouched)",
     "Creates the Tailwind entry CSS (replaces the template's default styles)",
   ];
+  if (framework === "sveltekit") {
+    // SvelteKit has no main.* entry — global CSS loads via the root layout.
+    // +layout.svelte is only created when the template didn't ship one
+    // (never overwritten); the note tells the user the one manual fallback.
+    commands.push(
+      `[ -f "src/routes/+layout.svelte" ] || cat > src/routes/+layout.svelte <<'EOF'\n<script>\n  import "../app.css";\n  let { children } = $props();\n</script>\n\n{@render children()}\nEOF`
+    );
+    notes.push("Creates the root layout importing app.css (skipped if you have one — then import ../app.css there yourself)");
+    return { commands, notes };
+  }
   // Entry file per framework (Solid boots from index.tsx, Vue from main.ts).
   // The append is guarded (no dupes) and null-safe under set -e.
   // Electron's Forge template layout varies — link the CSS by hand there.
@@ -1307,7 +1344,7 @@ function eslintSteps(
       },
       {
         command: heredoc("eslint.config.js", lintConfig("vue", ts)),
-        note: "Creates a Vue + TypeScript flat config",
+        note: `Creates a Vue${ts ? " + TypeScript" : ""} flat config`,
       },
     ];
   }
@@ -1344,7 +1381,7 @@ function eslintSteps(
           framework === "wails" ? "frontend/eslint.config.js" : "eslint.config.js",
           lintConfig("react", ts)
         ),
-        note: "Creates a React + TypeScript flat config",
+        note: `Creates a React${ts ? " + TypeScript" : ""} flat config`,
       },
     ];
   }
@@ -1389,11 +1426,12 @@ function devCommand(
           };
     if (framework === "ionic")
       return {
-        command: "ionic serve",
+        // Via the package manager — no global `npm i -g` needed first.
+        command: `${t.pmx} @ionic/cli serve`,
         note:
           target === "ios"
-            ? "Serves your iPhone app in the browser (first time: npm i -g @ionic/cli)"
-            : "Serves your Android app in the browser (first time: npm i -g @ionic/cli)",
+            ? "Serves your iPhone app in the browser"
+            : "Serves your Android app in the browser",
       };
   }
   if (platform === "desktop") {
@@ -1478,8 +1516,11 @@ export function assemble(selections: WizardSelections): BuildStep[] {
   if (fw) {
     fw.commands.forEach((raw, i) => {
       const cmd = resolveToken(raw, pm, language, dir);
-      // Notes name the folder too ("in my-app") — keep them in sync.
+      // Notes name the folder too ("in my-app") — keep them in sync. The
+      // Tauri/Electron scaffold notes name TypeScript — say the picked language.
       let note = (fw.notes[i] ?? "").replaceAll("my-app", dir).replaceAll("MyApp", dir);
+      if (framework === "tauri" && language !== "typescript") note = note.replaceAll("React-TS", "React");
+      if (framework === "electron" && language !== "typescript") note = note.replaceAll("Vite + TypeScript", "Vite + JavaScript");
       // `cd` mid-script is where copy-paste setups die (ENOENT: no package.json).
       // Pin the working directory expectation right where it changes — any
       // plain `cd <dir>`, never a compound line (the NestJS scaffold cds back).
@@ -1557,6 +1598,12 @@ module.exports = {
     }
   }
 
+  // The Production-folders step above already created the lib dir — service
+  // stubs must not echo a redundant second mkdir for it.
+  if (selections.toggles["structure"] && STRUCTURE_DIRS[framework]) {
+    ensuredDirs.add(libDir(framework));
+  }
+
   // 4+ — add-on option groups in file order (backend, database, orm, auth, payments, testing, cicd, ai, skills)
   const order = ["backend", "database", "orm", "auth", "payments", "testing", "cicd", "ai", "skills"];
   order.forEach((groupId, idx) => {
@@ -1591,17 +1638,32 @@ module.exports = {
           if (!driver) return; // ORM is hidden for these DBs anyway — never a wrong driver
           push(`${4 + idx} · ${group.label}`, `${pmCommands(pm).add} ${driver}`, notes[i] ?? "");
           return;
-        }      // AI rules files are generated from the live selections (stack-aware),
+        }              // AI rules files are generated from the live selections (stack-aware),
         // not from static strings — same heredoc pattern as the CI file steps.
-        const cmd = AI_RULE_FILES[raw] ? aiRulesCommand(raw, selections) : resolveToken(raw, pm, language, dir);
+        // CI files are framework-aware too (some scaffolds have no `build`).
+        const cmd =
+          AI_RULE_FILES[raw]
+            ? aiRulesCommand(raw, selections)
+            : raw === "__CI_FILE__"
+              ? githubCiFile(pm, platform, framework)
+              : raw === "__GITLAB_CI_FILE__"
+                ? gitlabCiFile(pm, platform, framework)
+                : resolveToken(raw, pm, language, dir);
         let note = notes[i] ?? "";
-        // The generated CI only runs install + web build — device binaries
-        // and desktop installers need OS-specific runners. Say so inline.
-        if ((raw === "__CI_FILE__" || raw === "__GITLAB_CI_FILE__") && platform !== "web") {
-          note +=
-            platform === "desktop"
-              ? " (web build only — Tauri/Electron/Wails binaries need OS-specific runners; see their docs)"
-              : " (install + web build only — store builds need EAS/Gradle/Xcode)";
+        // The generated CI only runs what the scaffold supports — device
+        // binaries and desktop installers need OS-specific runners. Say so inline.
+        if (raw === "__CI_FILE__" || raw === "__GITLAB_CI_FILE__") {
+          // Install-only job (no `build` script in the scaffold) — don't
+          // promise a build in the progress line either.
+          if (!ciBuild(pm, platform, framework)) note = note.replace("install + build", "install");
+          if (platform === "desktop") {
+            note +=
+              framework === "electron"
+                ? " (install only — desktop binaries need OS-specific runners; see the Electron docs)"
+                : " (web build only — Tauri/Electron/Wails binaries need OS-specific runners; see their docs)";
+          } else if (platform === "mobile" && framework !== "ionic") {
+            note += " (install only — store builds need EAS/Gradle/Xcode)";
+          }
         }
         push(`${4 + idx} · ${group.label}`, cmd, note);
       });
@@ -1611,13 +1673,16 @@ module.exports = {
         const ts = selections.language === "typescript";
         const ext = ts ? "ts" : "js";
         const section = `${4 + idx} · ${group.label}`;
+        const envFile = envFileFor(framework);
         const serverSideNote =
           platform === "desktop"
             ? " (publishable key only — secrets stay on a server)"
             : " (publishable key only — secrets stay server-side)";
         if (groupId === "database" && opt.id === "supabase") {
           ensureDir(section, libDir(framework));
-          const mobile = platform === "mobile";
+          // Ionic runs in a WebView with localStorage — the plain web client
+          // is correct there, not the native (AsyncStorage) variant.
+          const mobile = platform === "mobile" && framework !== "ionic";
           push(
             section,
             heredoc(
@@ -1626,14 +1691,14 @@ module.exports = {
             ),
             mobile
               ? "Creates the Supabase client for native (see the storage TODO to stay logged in)"
-              : "Creates the Supabase client (reads your .env, throws naming what's missing)"
+              : `Creates the Supabase client (reads your ${envFile}, throws naming what's missing)`
           );
         }
         // Firebase's web SDK speaks import.meta on Vite — wrong model for
         // native runtimes, so mobile keeps install + env keys + notes.
         if (groupId === "database" && opt.id === "firebase" && platform !== "mobile") {
           ensureDir(section, libDir(framework));
-          push(section, heredoc(`${libDir(framework)}/firebase.${ext}`, firebaseStub(selections)), "Creates the Firebase app + auth + db (reads your .env, throws naming what's missing)");
+          push(section, heredoc(`${libDir(framework)}/firebase.${ext}`, firebaseStub(selections)), `Creates the Firebase app + auth + db (reads your ${envFile}, throws naming what's missing)`);
         }
         if (groupId === "payments" && opt.id === "stripe" && platform !== "mobile") {
           ensureDir(section, libDir(framework));
@@ -1648,7 +1713,9 @@ module.exports = {
           push(
             section,
             heredoc(`${libDir(framework)}/razorpay.${ext}`, razorpayClientStub(selections)),
-            `Opens the Razorpay popup (order comes from your server route${platform === "desktop" ? " — secrets stay on a server" : ""})`
+            platform === "desktop"
+              ? "Opens the Razorpay popup (order comes from your server — secrets stay on a server)"
+              : "Opens the Razorpay popup (order comes from your server route)"
           );
         }
         if (groupId === "payments" && opt.id === "paypal" && platform !== "mobile") {
@@ -1664,7 +1731,7 @@ module.exports = {
           push(
             section,
             heredoc(`${libDir(framework)}/paddle.${ext}`, paddleStub(selections)),
-            "Initializes Paddle (reads your .env, throws naming what's missing)"
+            `Initializes Paddle (reads your ${envFile}, throws naming what's missing)`
           );
         }
         // Native payments (Expo / bare React Native — Ionic uses Capacitor,
@@ -1734,7 +1801,7 @@ module.exports = {
       push(
         `${4 + idx} · ${group.label}`,
         heredoc(`${libDir(framework)}/firebase.${ext}`, firebaseStub(selections)),
-        "Creates the Firebase app + auth (reads your .env, throws naming what's missing)"
+        `Creates the Firebase app + auth (reads your ${envFileFor(framework)}, throws naming what's missing)`
       );
     }
     // Supabase Auth without the Supabase database still needs the client.
@@ -1750,7 +1817,7 @@ module.exports = {
       const ts = selections.language === "typescript";
       const ext = ts ? "ts" : "js";
       ensureDir(`${4 + idx} · ${group.label}`, libDir(framework));
-      const mobile = (selections.platform ?? "web") === "mobile";
+      const mobile = (selections.platform ?? "web") === "mobile" && selections.framework !== "ionic";
       push(
         `${4 + idx} · ${group.label}`,
         heredoc(
@@ -1759,7 +1826,7 @@ module.exports = {
         ),
         mobile
           ? "Creates the Supabase client for native (see the storage TODO to stay logged in)"
-          : "Creates the Supabase client (reads your .env, throws naming what's missing)"
+          : `Creates the Supabase client (reads your ${envFileFor(framework)}, throws naming what's missing)`
       );
     }
     // Test-script step stays inside the Testing group (numeric order).
@@ -1932,10 +1999,12 @@ const RUN_SECTIONS = ["See it running", "Run your backend"];
 // Scaffolds that stop and ask questions mid-run (project name, options…).
 // `yes ""` answers them all with defaults so the script never hangs.
 // Already non-interactive commands (--yes) and plain `npm start`-style
-// lines are excluded.
+// lines are excluded. Only the first line counts — heredoc bodies often
+// contain "create"/"init" (createClient, initializeApp) and must not match.
 function needsAutoYes(cmd: string): boolean {
   if (cmd.includes("--yes")) return false;
-  return /(create|init|nuxi|@angular\/cli|@nestjs\/cli new|@ionic\/cli)/i.test(cmd);
+  const head = cmd.split("\n")[0];
+  return /(create|init|nuxi|@angular\/cli|@nestjs\/cli new|@ionic\/cli)/i.test(head);
 }
 
 // Folder the scaffold creates — the first plain `cd <dir>` step names it

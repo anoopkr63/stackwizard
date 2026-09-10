@@ -284,15 +284,41 @@
           "commandsMobile": ["__ADD__ @stripe/stripe-react-native"],
           "notesMobile": ["Adds Stripe for React Native. Test keys go in .env."],
           "commandsDesktop": ["__ADD__ @stripe/stripe-js"],
-          "notesDesktop": ["Adds Stripe.js (client only). Desktop apps can't keep a secret key — charge and verify through your server."]
+          "notesDesktop": ["Adds Stripe.js (client only). Desktop apps can't keep a secret key — charge and verify through your server."],
+          "overrides": {
+            "react-vite": {
+              "commands": ["__ADD__ @stripe/stripe-js"],
+              "notes": ["Adds Stripe.js (client only — charge and verify through your server)."]
+            },
+            "vue": {
+              "commands": ["__ADD__ @stripe/stripe-js"],
+              "notes": ["Adds Stripe.js (client only — charge and verify through your server)."]
+            },
+            "solid": {
+              "commands": ["__ADD__ @stripe/stripe-js"],
+              "notes": ["Adds Stripe.js (client only — charge and verify through your server)."]
+            },
+            "sveltekit": {
+              "commands": ["__ADD__ @stripe/stripe-js"],
+              "notes": ["Adds Stripe.js (client only — charge and verify through your server)."]
+            },
+            "nuxt": {
+              "commands": ["__ADD__ @stripe/stripe-js"],
+              "notes": ["Adds Stripe.js (client only — charge and verify through your server)."]
+            },
+            "angular": {
+              "commands": ["__ADD__ @stripe/stripe-js"],
+              "notes": ["Adds Stripe.js (client only — charge and verify through your server)."]
+            }
+          }
         },
         {
           "id": "paypal",
           "label": "PayPal",
           "hint": "Trusted",
           "platforms": ["web", "desktop"],
-          "commands": ["__ADD__ @paypal/paypal-server-sdk @paypal/paypal-js"],
-          "notes": ["Adds PayPal. Sandbox keys needed."],
+          "commands": ["__ADD__ @paypal/paypal-js"],
+          "notes": ["Adds PayPal buttons (client only — keep the secret on a server). Sandbox keys needed."],
           "notesDesktop": ["Adds PayPal (keep the secret on a server — ship only the client ID in the desktop app). Sandbox keys needed."]
         },
         {
@@ -320,7 +346,34 @@
           "notes": ["Adds Razorpay. Test keys needed."],
           "commandsMobile": ["__ADD__ react-native-razorpay"],
           "notesMobile": ["Adds Razorpay for React Native. Test keys needed."],
-          "notesDesktop": ["Adds Razorpay (keep the key secret on a server — desktop apps ship the public key only). Test keys needed."]
+          "commandsDesktop": [],
+          "notesDesktop": [],
+          "overrides": {
+            "react-vite": {
+              "commands": [],
+              "notes": []
+            },
+            "vue": {
+              "commands": [],
+              "notes": []
+            },
+            "solid": {
+              "commands": [],
+              "notes": []
+            },
+            "sveltekit": {
+              "commands": [],
+              "notes": []
+            },
+            "nuxt": {
+              "commands": [],
+              "notes": []
+            },
+            "angular": {
+              "commands": [],
+              "notes": []
+            }
+          }
         },
         {
           "id": "revenuecat",
