@@ -28,8 +28,8 @@
           "id": "expo",
           "label": "Expo",
           "hint": "Easiest",
-          "commands": ["__PMX__ create-expo-app@latest my-app", "cd my-app"],
-          "notes": ["Creates an Expo app in my-app (installs everything)", "Enters my-app"]
+          "commands": ["__PMX__ create-expo-app@latest my-app -y", "cd my-app"],
+          "notes": ["Creates an Expo app in my-app, no prompts (installs everything)", "Enters my-app"]
         },
         {
           "id": "react-native",

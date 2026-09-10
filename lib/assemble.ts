@@ -1259,6 +1259,62 @@ const STUB_POSTCSS = `export default {
 
 const STUB_TAILWIND_CSS = `@import "tailwindcss";`;
 
+// ---- Mobile starters (pure React Native — no NativeWind dependency, so
+// they render before and after the optional NativeWind setup) --------------
+const STUB_EXPO_HOME = `import { StyleSheet, Text, View } from "react-native";
+
+export default function HomeScreen() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>StackWizard app is running</Text>
+      <Text style={styles.sub}>Edit src/app/index.tsx to start building.</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, backgroundColor: "#09090b" },
+  title: { color: "#fafafa", fontSize: 24, fontWeight: "bold", textAlign: "center" },
+  sub: { color: "#a1a1aa", marginTop: 12, textAlign: "center" },
+});`;
+
+const STUB_EXPO_EXPLORE = `import { StyleSheet, Text, View } from "react-native";
+
+export default function ExploreScreen() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Explore</Text>
+      <Text style={styles.sub}>A second tab, ready for your content.</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, backgroundColor: "#09090b" },
+  title: { color: "#fafafa", fontSize: 24, fontWeight: "bold", textAlign: "center" },
+  sub: { color: "#a1a1aa", marginTop: 12, textAlign: "center" },
+});`;
+
+const STUB_RN_APP = `import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+
+function App(): React.JSX.Element {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>StackWizard app is running</Text>
+      <Text style={styles.sub}>Edit App.tsx to start building.</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#09090b" },
+  title: { color: "#fafafa", fontSize: 24, fontWeight: "bold", textAlign: "center" },
+  sub: { color: "#a1a1aa", marginTop: 12, textAlign: "center" },
+});
+
+export default App;`;
+
 function tailwindCommands(
   pm: PackageManagerId,
   framework: string,
@@ -1274,9 +1330,19 @@ function tailwindCommands(
   // Wails keeps its UI under frontend/ — every emitted path matches that layout.
   const root = framework === "wails" ? "frontend/" : "";
   // CSS entry per template layout (create-vue keeps it under assets/,
-  // SvelteKit loads global CSS through the root layout as app.css).
+  // SvelteKit loads global CSS through the root layout as app.css, Angular
+  // through angular.json as styles.css, Nuxt through nuxt.config as
+  // app/assets/css/main.css).
   const cssRel =
-    framework === "vue" ? "src/assets/main.css" : framework === "sveltekit" ? "src/app.css" : "src/index.css";
+    framework === "vue"
+      ? "src/assets/main.css"
+      : framework === "sveltekit"
+        ? "src/app.css"
+        : framework === "angular"
+          ? "src/styles.css"
+          : framework === "nuxt"
+            ? "app/assets/css/main.css"
+            : "src/index.css";
   const cssPath = `${root}${cssRel}`;
   // Import spec relative to the entry file's own dir (both live under src/).
   const spec = `./${cssRel.replace(/^src\//, "")}`;
@@ -1291,13 +1357,25 @@ function tailwindCommands(
     "Creates the Tailwind entry CSS (replaces the template's default styles)",
   ];
   if (framework === "sveltekit") {
-    // SvelteKit has no main.* entry — global CSS loads via the root layout.
-    // +layout.svelte is only created when the template didn't ship one
-    // (never overwritten); the note tells the user the one manual fallback.
+    // SvelteKit has no main.* entry — the demo page becomes the Tailwind
+    // starter and imports app.css itself, so no layout surgery is needed
+    // (works whether or not the template shipped a +layout.svelte).
     commands.push(
-      `[ -f "src/routes/+layout.svelte" ] || cat > src/routes/+layout.svelte <<'EOF'\n<script>\n  import "../app.css";\n  let { children } = $props();\n</script>\n\n{@render children()}\nEOF`
+      heredoc(
+        "src/routes/+page.svelte",
+        `<script>
+	import '../app.css';
+</script>
+
+<main class="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-8">
+	<div class="max-w-md text-center space-y-4">
+		<h1 class="text-3xl font-bold">SvelteKit + Tailwind</h1>
+		<p class="text-zinc-400">Your StackWizard app is running. Edit <code>src/routes/+page.svelte</code> to start building.</p>
+	</div>
+</main>`
+      )
     );
-    notes.push("Creates the root layout importing app.css (skipped if you have one — then import ../app.css there yourself)");
+    notes.push("Replaces the demo page with a Tailwind starter (loads app.css — no layout edit needed)");
     return { commands, notes };
   }
   if (framework === "react-vite" || framework === "tauri") {
@@ -1330,7 +1408,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
 
-createRoot(document.getElementById("root")).render(
+createRoot(document.getElementById("root")${ts ? "!" : ""}).render(
   <StrictMode>
     <App />
   </StrictMode>
@@ -1342,6 +1420,190 @@ createRoot(document.getElementById("root")).render(
       "Replaces the demo App with a Tailwind starter (no App.css import)",
       "Rewrites the entry so the CSS import stays on top",
       "Deletes the template App.css (it fights Tailwind)"
+    );
+    return { commands, notes };
+  }
+  if (framework === "nuxt") {
+    // Nuxt loads global CSS only via the `css` array in nuxt.config
+    // (template-owned, never edited) — a conventional path alone does
+    // nothing. Only create the file when the template didn't ship one, then
+    // tell the user the one-line registration. The demo app.vue becomes a
+    // Tailwind starter (it is the root component — safe to replace).
+    commands[2] = `[ -f "${cssPath}" ] || ${commands[2]}`;
+    notes[2] = "Creates the Tailwind entry CSS (skipped if the template shipped one)";
+    commands.push(`# Nuxt: register it in nuxt.config.ts — css: ["~/assets/css/main.css"]`);
+    notes.push('Register the CSS in nuxt.config.ts (css: ["~/assets/css/main.css"])');
+    commands.push(
+      heredoc(
+        "app/app.vue",
+        `<template>
+  <main class="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-8">
+    <div class="max-w-md text-center space-y-4">
+      <h1 class="text-3xl font-bold">Nuxt + Tailwind</h1>
+      <p class="text-zinc-400">Your StackWizard app is running. Edit <code>app/app.vue</code> to start building.</p>
+    </div>
+  </main>
+</template>`
+      )
+    );
+    notes.push("Replaces the demo page with a Tailwind starter");
+    return { commands, notes };
+  }
+  if (framework === "angular") {
+    // angular.json already loads src/styles.css — replacing that file is the
+    // whole job, nothing to link. The demo component becomes an inline-
+    // template starter (no html/css coupling), with a matching spec so
+    // `ng test` stays green.
+    commands.push(`# Angular: src/styles.css is loaded via angular.json — nothing to link`);
+    notes.push("Replaces src/styles.css (already wired in angular.json — nothing to link)");
+    commands.push(
+      heredoc(
+        "src/app/app.component.ts",
+        `import { Component } from "@angular/core";
+
+@Component({
+  selector: "app-root",
+  standalone: true,
+  imports: [],
+  template: \`
+    <main class="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-8">
+      <div class="max-w-md text-center space-y-4">
+        <h1 class="text-3xl font-bold">{{ title }}</h1>
+        <p class="text-zinc-400">Your StackWizard app is running. Edit <code>src/app/app.component.ts</code> to start building.</p>
+      </div>
+    </main>
+  \`,
+  styles: [],
+})
+export class AppComponent {
+  title = "StackWizard app is running";
+}`
+      ),
+      heredoc(
+        "src/app/app.component.spec.ts",
+        `import { TestBed } from "@angular/core/testing";
+import { AppComponent } from "./app.component";
+
+describe("AppComponent", () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [AppComponent],
+    }).compileComponents();
+  });
+
+  it("should create the app", () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    expect(fixture.componentInstance).toBeTruthy();
+  });
+
+  it("should render the title", () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector("h1")?.textContent).toContain("StackWizard");
+  });
+});`
+      ),
+      `rm -f src/app/app.component.html src/app/app.component.css`
+    );
+    notes.push(
+      "Replaces the demo component with a Tailwind starter (inline template, no html/css files)",
+      "Replaces the spec to match (ng test stays green)",
+      "Deletes the orphaned template + css"
+    );
+    return { commands, notes };
+  }
+  if (framework === "vue") {
+    // main.ts already imports the CSS first — only the demo App and its
+    // components go. The starter has no `lang` attribute, so it works in
+    // TypeScript and JavaScript projects alike.
+    commands.push(
+      heredoc(
+        "src/App.vue",
+        `<template>
+  <main class="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-8">
+    <div class="max-w-md text-center space-y-4">
+      <h1 class="text-3xl font-bold">Vue + Tailwind</h1>
+      <p class="text-zinc-400">Your StackWizard app is running. Edit <code>src/App.vue</code> to start building.</p>
+    </div>
+  </main>
+</template>`
+      ),
+      `rm -rf src/components`
+    );
+    notes.push(
+      "Replaces the demo App with a Tailwind starter (works with or without TypeScript)",
+      "Deletes the template demo components (nothing references them now)"
+    );
+    return { commands, notes };
+  }
+  if (framework === "solid") {
+    // index.tsx already imports the CSS first — only the demo App goes.
+    // Solid uses `class`, not `className`.
+    const ext = language === "typescript" ? "tsx" : "jsx";
+    commands.push(
+      heredoc(
+        `src/App.${ext}`,
+        `export default function App() {
+  return (
+    <main class="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-8">
+      <div class="max-w-md text-center space-y-4">
+        <h1 class="text-3xl font-bold">Solid + Tailwind</h1>
+        <p class="text-zinc-400">Your StackWizard app is running. Edit <code>src/App.${ext}</code> to start building.</p>
+      </div>
+    </main>
+  );
+}`
+      ),
+      `rm -f src/App.css`
+    );
+    notes.push(
+      "Replaces the demo App with a Tailwind starter",
+      "Deletes the template App.css (it fights Tailwind)"
+    );
+    return { commands, notes };
+  }
+  if (framework === "electron") {
+    // Forge's Vite template is vanilla TS: renderer entry + index.html, no
+    // App component. Replace both (same script-tag contract), keep the CSS
+    // import on top. One body serves both languages — it is type-free.
+    const rfile = language === "typescript" ? "renderer.ts" : "renderer.js";
+    const welcome = [
+      '<main class="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-8">',
+      '<div class="max-w-md text-center space-y-4">',
+      '<h1 class="text-3xl font-bold">Electron + Tailwind</h1>',
+      '<p class="text-zinc-400">Your StackWizard app is running.</p>',
+      "</div>",
+      "</main>",
+    ].join("");
+    commands.push(
+      heredoc(
+        `src/${rfile}`,
+        `import './index.css';
+
+const root = document.getElementById('app');
+if (root) {
+  root.innerHTML = '${welcome}';
+}`
+      ),
+      heredoc(
+        "index.html",
+        `<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>StackWizard app</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/${rfile}"></script>
+  </body>
+</html>`
+      )
+    );
+    notes.push(
+      "Replaces the demo renderer with a Tailwind starter (CSS import on top)",
+      "Rewrites index.html around the app root (same script tag)"
     );
     return { commands, notes };
   }
@@ -1642,12 +1904,38 @@ export function assemble(selections: WizardSelections): BuildStep[] {
   const fw = frameworkCat?.options.find((o) => o.id === framework);
   if (fw) {
     fw.commands.forEach((raw, i) => {
-      const cmd = resolveToken(raw, pm, language, dir);
+      let cmd = resolveToken(raw, pm, language, dir);
       // Notes name the folder too ("in my-app") — keep them in sync. The
       // Tauri/Electron scaffold notes name TypeScript — say the picked language.
       let note = (fw.notes[i] ?? "").replaceAll("my-app", dir).replaceAll("MyApp", dir);
       if (framework === "tauri" && language !== "typescript") note = note.replaceAll("React-TS", "React");
       if (framework === "electron" && language !== "typescript") note = note.replaceAll("Vite + TypeScript", "Vite + JavaScript");
+      // Vue's scaffolder is interactive unless told otherwise — pass the
+      // picks as flags (verified non-interactive). create-vue has no
+      // no-TypeScript flag, so JavaScript stays a manual step on purpose.
+      if (framework === "vue" && /(create-)?vue@latest/.test(cmd)) {
+        if (language === "typescript") {
+          cmd = cmd.replace(/((?:create-)?vue@latest) (\S+)$/, "$1 -- --ts $2");
+          note = `${note} (runs without prompts)`;
+        } else {
+          note = `${note} — answer the prompts yourself (say No to TypeScript for JavaScript)`;
+        }
+      }
+      // `sv create` replaced `npm create svelte` (which now only prints a
+      // deprecation notice). Flags make it fully non-interactive.
+      if (framework === "sveltekit" && cmd.includes("sv@latest create")) {
+        cmd += ` --template minimal --types ${language === "typescript" ? "ts" : "no-types"} --no-add-ons --no-install`;
+      }
+      // nuxi demands its picks up front in a pipe (it errors instead of
+      // prompting). Template v4, your manager, no double install, no git.
+      if (framework === "nuxt" && cmd.includes("nuxi@latest init")) {
+        cmd += ` -t v4 --packageManager ${pm} --no-install --no-gitInit`;
+      }
+      // ng new prompts without --defaults (and hangs on a pipe). Pin CSS so
+      // the Tailwind entry below always lands on src/styles.css.
+      if (framework === "angular" && cmd.includes("@angular/cli")) {
+        cmd += " --defaults --skip-git --skip-install --style=css";
+      }
       // `cd` mid-script is where copy-paste setups die (ENOENT: no package.json).
       // Pin the working directory expectation right where it changes — any
       // plain `cd <dir>`, never a compound line (the NestJS scaffold cds back).
@@ -1729,6 +2017,34 @@ module.exports = {
   // stubs must not echo a redundant second mkdir for it.
   if (selections.toggles["structure"] && STRUCTURE_DIRS[framework]) {
     ensuredDirs.add(libDir(framework));
+  }
+
+  // Clean starters for mobile templates (their demos are full sample apps,
+  // not minimal entries). Unconditional — a sample app is never the right
+  // starting point, whatever styling was picked. Same file contracts as the
+  // templates (expo-router routes, RN default export), so nothing breaks.
+  if (platform === "mobile") {
+    const usedStarter = steps.map((s) => parseInt(s.section, 10)).filter((n) => !Number.isNaN(n));
+    const starterNo = (usedStarter.length ? Math.max(...usedStarter) : 3) + 1;
+    if (framework === "expo") {
+      push(
+        `${starterNo} · Starter screens`,
+        heredoc("src/app/index.tsx", STUB_EXPO_HOME),
+        "Replaces the demo home screen (pure React Native — renders before and after the NativeWind setup)"
+      );
+      push(
+        `${starterNo} · Starter screens`,
+        heredoc("src/app/explore.tsx", STUB_EXPO_EXPLORE),
+        "Replaces the demo explore tab (same route, make it yours)"
+      );
+    }
+    if (framework === "react-native") {
+      push(
+        `${starterNo} · Starter screen`,
+        heredoc("App.tsx", STUB_RN_APP),
+        "Replaces the demo App (same default export — index.js untouched)"
+      );
+    }
   }
 
   // 4+ — add-on option groups in file order (backend, database, orm, auth, payments, testing, cicd, ai, skills)
@@ -1834,30 +2150,6 @@ module.exports = {
             heredoc(`${libDir(framework)}/stripe.${ext}`, stripeStub(selections)),
             `Creates the Stripe client${serverSideNote}`
           );
-          // Stacks without API routes can't charge or catch webhooks in the
-          // app — the secrets in .env need a server. With Supabase picked,
-          // that server is two Edge Functions (Next.js already got a webhook
-          // route above, so it skips this).
-          const hasSupabase =
-            (selections.addons.database === "supabase" && isAddonLive(selections, "database", "supabase")) ||
-            (selections.addons.auth === "supabase-auth" && isAddonLive(selections, "auth", "supabase-auth"));
-          if (framework !== "nextjs" && hasSupabase) {
-            push(
-              section,
-              `mkdir -p "supabase/functions/create-checkout" "supabase/functions/stripe-webhook"`,
-              "Makes the edge-function folders"
-            );
-            push(
-              section,
-              heredoc("supabase/functions/create-checkout/index.ts", STUB_EDGE_CHECKOUT),
-              "Creates Checkout Sessions on your server (deploy with supabase functions deploy)"
-            );
-            push(
-              section,
-              heredoc("supabase/functions/stripe-webhook/index.ts", STUB_EDGE_WEBHOOK),
-              "Catches Stripe events on your server (deploy with --no-verify-jwt)"
-            );
-          }
         }
         if (groupId === "payments" && opt.id === "razorpay" && platform !== "mobile") {
           ensureDir(section, libDir(framework));
@@ -1933,6 +2225,36 @@ module.exports = {
             "Configures Auth.js (GitHub provider — keys already in your .env)"
           );
         }
+      }
+      // Server side for Stripe on stacks without API routes (see the
+      // STUB_EDGE_* headers for deploy + invoke docs). Framework-agnostic on
+      // purpose — it works for stub-less frameworks (Nuxt, Angular) too.
+      // Next.js already got a webhook route above; mobile stays notes-only
+      // (PaymentSheet needs a PaymentIntent endpoint, not Checkout Sessions).
+      if (
+        groupId === "payments" &&
+        opt.id === "stripe" &&
+        framework !== "nextjs" &&
+        platform !== "mobile" &&
+        ((selections.addons.database === "supabase" && isAddonLive(selections, "database", "supabase")) ||
+          (selections.addons.auth === "supabase-auth" && isAddonLive(selections, "auth", "supabase-auth")))
+      ) {
+        const section = `${4 + idx} · ${group.label}`;
+        push(
+          section,
+          `mkdir -p "supabase/functions/create-checkout" "supabase/functions/stripe-webhook"`,
+          "Makes the edge-function folders"
+        );
+        push(
+          section,
+          heredoc("supabase/functions/create-checkout/index.ts", STUB_EDGE_CHECKOUT),
+          "Creates Checkout Sessions on your server (deploy with supabase functions deploy)"
+        );
+        push(
+          section,
+          heredoc("supabase/functions/stripe-webhook/index.ts", STUB_EDGE_WEBHOOK),
+          "Catches Stripe events on your server (deploy with --no-verify-jwt)"
+        );
       }
     }
     // Firebase Auth without the Firebase database still needs the app client.
@@ -2162,6 +2484,15 @@ try {
     nextNo += 1;
   }
 
+  // Post-setup guide — always generated. New path (no template ships
+  // START_HERE.md), so there is no clobber risk and no guard needed.
+  push(
+    `${nextNo} · Read this next`,
+    heredoc("START_HERE.md", startHereBody(selections)),
+    "Writes your post-setup guide (what to do next, in order)"
+  );
+  nextNo += 1;
+
   // Final — run it
   const dev = devCommand(pm, platform, framework, selections.target ?? "android");
   push(`${nextNo} · See it running`, dev.command, dev.note);
@@ -2190,6 +2521,10 @@ const RUN_SECTIONS = ["See it running", "Run your backend"];
 function needsAutoYes(cmd: string): boolean {
   if (cmd.includes("--yes")) return false;
   const head = cmd.split("\n")[0];
+  // Flag-driven scaffolds never prompt: create-vue with --ts/--default and
+  // `sv create` with --template/--types/--no-add-ons. (Bare `create vue@`
+  // without flags stays manual — piping `yes` into its prompts hangs.)
+  if (/create vue@|sv@latest create/.test(head)) return false;
   if (/(^|\s)(create|init)(-|$|\s)/i.test(head)) return true;
   return /(nuxi|@angular\/cli|@nestjs\/cli new|@ionic\/cli)/i.test(head);
 }
@@ -2279,30 +2614,8 @@ function aiRulesBody(sel: WizardSelections): string {
   const envFile = envFileFor(sel.framework);
   const target: "android" | "ios" = sel.target ?? "android";
   const dev = devCommand(pm, platform, sel.framework, target);
-  const buildCmd =
-    platform === "mobile"
-      ? sel.framework === "expo"
-        ? `${t.pmx} eas build -p ${target}`
-        : sel.framework === "react-native"
-          ? target === "ios"
-            ? `${t.pmx} react-native run-ios --configuration Release`
-            : "cd android && ./gradlew assembleRelease"
-          : "ionic build"
-      : platform === "desktop"
-        ? sel.framework === "tauri"
-          ? pm === "npm"
-            ? "npm run tauri build"
-            : `${t.run} tauri build`
-          : sel.framework === "electron"
-            ? pm === "npm"
-              ? "npm run make"
-              : `${t.run} make`
-            : "wails build"
-        : pm === "npm"
-          ? "npm run build"
-          : pm === "yarn"
-            ? "yarn build"
-            : `${t.run} build`;
+  const buildCmd = buildCmdFor(pm, platform, sel.framework, target);
+  const testCmd = testCmdFor(sel);
   const lines = [
     "# AI rules (generated by StackWizard)",
     "## Stack",
@@ -2314,26 +2627,7 @@ function aiRulesBody(sel: WizardSelections): string {
     ...(sel.toggles["eslint-prettier"] ? [`- Lint: ${t.pmx} eslint .`] : []),
     // The generated project gets a real `test` script (js runners) or a
     // device-CLI flow (mobile) — point at the runner, never bare `npm test`.
-    ...(() => {
-      const picked = sel.addons.testing || "none";
-      const runner =
-        picked === "vitest"
-          ? "vitest run"
-          : picked === "jest"
-            ? "jest"
-            : picked === "playwright"
-              ? "playwright test"
-              : picked === "cypress"
-                ? "cypress run"
-                : picked === "maestro"
-                  ? "maestro test"
-                  : picked === "detox"
-                    ? "detox test"
-                    : "";
-      if (!runner) return [];
-      const cmd = picked === "maestro" || picked === "detox" ? runner : `${t.pmx} ${runner}`;
-      return [`- Tests: ${cmd}`];
-    })(),
+    ...(testCmd ? [`- Tests: ${testCmd}`] : []),
     "## Rules",
     `- Keys go in ${envFile} — never commit it, never print it`,
     "- Don't change the package manager or framework without asking",
@@ -2362,6 +2656,149 @@ function aiRulesBody(sel: WizardSelections): string {
 function aiRulesCommand(token: string, sel: WizardSelections): string {
   const file = AI_RULE_FILES[token] ?? "AGENTS.md";
   return [`cat > ${file} <<'EOF'`, aiRulesBody(sel), "EOF"].join("\n");
+}
+
+// ---- Post-setup guide (START_HERE.md, always generated) -------------------
+// Shared with the AI rules so both files name the same commands.
+function buildCmdFor(
+  pm: PackageManagerId,
+  platform: PlatformId,
+  framework: string,
+  target: "android" | "ios"
+): string {
+  const t = pmCommands(pm);
+  if (platform === "mobile") {
+    if (framework === "expo") return `${t.pmx} eas build -p ${target}`;
+    if (framework === "react-native")
+      return target === "ios" ? `${t.pmx} react-native run-ios --configuration Release` : "cd android && ./gradlew assembleRelease";
+    return "ionic build";
+  }
+  if (platform === "desktop") {
+    if (framework === "tauri") return pm === "npm" ? "npm run tauri build" : `${t.run} tauri build`;
+    if (framework === "electron") return pm === "npm" ? "npm run make" : `${t.run} make`;
+    return "wails build";
+  }
+  if (pm === "npm") return "npm run build";
+  if (pm === "yarn") return "yarn build";
+  return `${t.run} build`;
+}
+
+// "" when no runner was picked. JS runners get a real `test` script;
+// Maestro/Detox are device CLIs with their own commands.
+function testCmdFor(sel: WizardSelections): string {
+  const picked = sel.addons.testing || "none";
+  const runner =
+    picked === "vitest"
+      ? "vitest run"
+      : picked === "jest"
+        ? "jest"
+        : picked === "playwright"
+          ? "playwright test"
+          : picked === "cypress"
+            ? "cypress run"
+            : picked === "maestro"
+              ? "maestro test"
+              : picked === "detox"
+                ? "detox test"
+                : "";
+  if (!runner) return "";
+  return picked === "maestro" || picked === "detox" ? runner : `${pmCommands(sel.packageManager).pmx} ${runner}`;
+}
+
+// "Still needs code" list for the guide — same source of truth as the
+// wizard's on-page panel. Commands scaffold; they don't write app code.
+function codeGapsFor(sel: WizardSelections, platform: PlatformId): string[] {
+  const gaps: string[] = [];
+  if ((sel.addons.backend || "none") !== "none") gaps.push("API: add GET /health + login checks.");
+  if ((sel.addons.auth || "none") !== "none") {
+    gaps.push(
+      platform === "mobile"
+        ? "Login: wire the provider SDK into your navigation."
+        : platform === "desktop"
+          ? "Login: wire the provider SDK into your app window."
+          : "Login: add callback route + session check."
+    );
+  }
+  const pay = sel.addons.payments || "none";
+  if (pay !== "none" && pay !== "lemonsqueezy") {
+    gaps.push(
+      pay === "revenuecat"
+        ? "Payments: connect App Store / Play in the RevenueCat dashboard."
+        : platform === "desktop"
+          ? "Payments: verify on your server — desktop apps can't hold secret keys."
+          : "Payments: add a webhook route."
+    );
+  }
+  return gaps;
+}
+
+function startHereBody(sel: WizardSelections): string {
+  const pm = sel.packageManager;
+  const platform: PlatformId = sel.platform ?? "web";
+  const catalog = catalogFor(platform);
+  const dir = sanitizeAppName(sel.appName, sel);
+  const lang = sel.language === "typescript" ? "TypeScript" : "JavaScript";
+  const fw = labelOf(catalog.categories.find((c) => c.id === "framework")?.options ?? [], sel.framework);
+  const styling = labelOf(catalog.categories.find((c) => c.id === "styling")?.options ?? [], sel.styling);
+  const target: "android" | "ios" = sel.target ?? "android";
+  const dev = devCommand(pm, platform, sel.framework, target);
+  const envFile = envFileFor(sel.framework);
+  const services = envBlocks(sel).services;
+  const testCmd = testCmdFor(sel);
+  const gaps = codeGapsFor(sel, platform);
+  // Default dev URL per framework family (web only) — the terminal prints
+  // the real one, this is just so a beginner knows where to look.
+  const url =
+    platform !== "web"
+      ? ""
+      : sel.framework === "angular"
+        ? "http://localhost:4200"
+        : ["react-vite", "vue", "solid", "sveltekit"].includes(sel.framework)
+          ? "http://localhost:5173"
+          : "http://localhost:3000";
+  const lines = [
+    `# START HERE — ${dir}`,
+    "",
+    `Your stack: ${fw} + ${lang} + ${styling}, ${pm}${platform === "mobile" ? ` (target: ${target === "ios" ? "iPhone" : "Android"})` : ""}`,
+    "Setup is done. Do these in order:",
+    "",
+    "## 1. Enter your project",
+    `Run every command below from inside ${dir}:`,
+    "",
+    `    cd ${dir}`,
+  ];
+  if (services.length) {
+    lines.push(
+      "",
+      "## 2. Add your keys",
+      `Open ${envFile} — every key is listed with its format and where to find it.`,
+      `Needed for: ${services.join(" + ")}.`,
+      "Restart the dev server after editing. Never commit this file."
+    );
+  }
+  lines.push(
+    "",
+    `## ${services.length ? 3 : 2}. Start it`,
+    "",
+    `    ${dev.command}`,
+    "",
+    dev.note + (url ? ` (${url}).` : ".")
+  );
+  if (gaps.length) {
+    lines.push("", "## Still needs code", "The script scaffolds — it doesn't write app code:", "");
+    for (const g of gaps) lines.push(`- ${g}`);
+  }
+  lines.push(
+    "",
+    "## Useful commands",
+    `- Dev: ${dev.command}`,
+    `- Build: ${buildCmdFor(pm, platform, sel.framework, target)}`,
+    ...(testCmd ? [`- Tests: ${testCmd}`] : []),
+    ...(sel.toggles["eslint-prettier"] ? [`- Lint: ${pmCommands(pm).pmx} eslint .`] : []),
+    "",
+    "Regenerate this setup any time at StackWizard — Download .sh again."
+  );
+  return lines.join("\n");
 }
 
 export function defaultSelections(): WizardSelections {

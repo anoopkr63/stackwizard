@@ -47,15 +47,15 @@
           "id": "sveltekit",
           "label": "Svelte / SvelteKit",
           "hint": "Less code",
-          "commands": ["__PM_CREATE__ svelte@latest my-app", "cd my-app", "__INSTALL__"],
-          "notes": ["Starts the Svelte setup", "Enters my-app", "Installs dependencies"]
+          "commands": ["__PMX__ sv@latest create my-app", "cd my-app", "__INSTALL__"],
+          "notes": ["Starts the Svelte setup (template, types and add-ons are fixed from your picks — no prompts)", "Enters my-app", "Installs dependencies"]
         },
         {
           "id": "angular",
           "label": "Angular",
           "hint": "Complete",
           "commands": ["__PMX__ @angular/cli@latest new my-app", "cd my-app", "__INSTALL__"],
-          "notes": ["Creates an Angular site called my-app (prompts use defaults: CSS stylesheets — pick SCSS files yourself if you chose SCSS)", "Enters my-app", "Installs dependencies"]
+          "notes": ["Creates an Angular site called my-app (runs without prompts — CSS stylesheets)", "Enters my-app", "Installs dependencies"]
         },
         {
           "id": "solid",
