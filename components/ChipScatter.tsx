@@ -119,6 +119,7 @@ export default function ChipScatter() {
         return (
           <span
             key={c.text}
+            data-smudge-hide
             onPointerDown={(e) => onPointerDown(e, c.text)}
             onPointerMove={(e) => onPointerMove(e, c.text, e.currentTarget)}
             onPointerUp={(e) => endDrag(e, c.text)}

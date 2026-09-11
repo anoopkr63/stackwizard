@@ -19,7 +19,7 @@ export default function Hero() {
   const { dir } = useSelection();
   const preview = [`npm create next-app@latest ${dir}`, `cd ${dir}`, "npm install", "npm run dev"];
   return (
-    <section className="relative overflow-hidden border-b border-line">
+    <section id="hero" className="relative overflow-hidden border-b border-line">
       <div aria-hidden="true" className="bg-grid pointer-events-none absolute inset-0" />
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="anim-blob-warm absolute -top-24 left-[8%] h-72 w-72 rounded-full bg-ember/15 blur-[64px]" />
@@ -33,12 +33,14 @@ export default function Hero() {
 
       <div className="relative mx-auto max-w-6xl px-4 pb-14 pt-14 text-center sm:px-6 lg:pt-24">
         <p
+          data-smudge-hide
           className="anim-hero inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold uppercase tracking-widest text-muted"
           style={{ animationDelay: "0ms" }}
         >
           Free tool for developers · Web + Mobile + Desktop
         </p>
         <h1
+          data-smudge-hide
           className="anim-hero display mx-auto mt-6 max-w-4xl text-[clamp(2.6rem,7vw,4.75rem)] font-bold leading-[1.04]"
           style={{ animationDelay: "90ms" }}
         >

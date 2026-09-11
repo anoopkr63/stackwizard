@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import IntroLoader from "@/components/IntroLoader";
 import ScrollProgress from "@/components/ScrollProgress";
 import BackToTop from "@/components/BackToTop";
+import CursorSmudge from "@/components/CursorSmudge";
 import { SelectionProvider } from "@/components/SelectionProvider";
 
 export default function Site() {
@@ -26,6 +27,7 @@ export default function Site() {
       </main>
       <Footer />
       <BackToTop />
+      <CursorSmudge />
       </SelectionProvider>
     </div>
   );
