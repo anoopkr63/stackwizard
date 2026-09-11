@@ -2048,7 +2048,7 @@ module.exports = {
   }
 
   // 4+ — add-on option groups in file order (backend, database, orm, auth, payments, testing, cicd, ai, skills)
-  const order = ["backend", "database", "orm", "auth", "payments", "testing", "cicd", "ai", "skills"];
+  const order = ["backend", "database", "orm", "auth", "payments", "graphics", "testing", "cicd", "ai", "skills"];
   order.forEach((groupId, idx) => {
     const group = addons.groups.find((g) => g.id === groupId);
     if (!group?.options) return;
@@ -2606,7 +2606,7 @@ function aiRulesBody(sel: WizardSelections): string {
   const fw = labelOf(catalog.categories.find((c) => c.id === "framework")?.options ?? [], sel.framework);
   const styling = labelOf(catalog.categories.find((c) => c.id === "styling")?.options ?? [], sel.styling);
   const extras: string[] = [];
-  for (const gid of ["database", "auth", "payments"]) {
+  for (const gid of ["database", "auth", "payments", "graphics"]) {
     const g = addons.groups.find((x) => x.id === gid);
     const val = sel.addons[gid] || "none";
     if (g && val !== "none") extras.push(`${g.label}: ${labelOf(g.options ?? [], val)}`);
@@ -2817,6 +2817,7 @@ export function defaultSelections(): WizardSelections {
       orm: "",
       auth: "",
       payments: "",
+      graphics: "",
       testing: "",
       cicd: "",
       ai: "",

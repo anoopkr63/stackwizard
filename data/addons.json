@@ -386,6 +386,31 @@
       ]
     },
     {
+      "id": "graphics",
+      "label": "3D graphics",
+      "help": "Interactive 3D in the browser.",
+      "options": [
+        { "id": "none", "label": "No 3D", "hint": "Flat site", "commands": [], "notes": [] },
+        {
+          "id": "three",
+          "label": "Three.js",
+          "hint": "3D scenes",
+          "platforms": ["web", "desktop"],
+          "commands": ["__ADD__ three"],
+          "notes": ["Adds Three.js for 3D graphics. TypeScript users: also add @types/three (types ship separately)."]
+        },
+        {
+          "id": "fiber",
+          "label": "React Three Fiber",
+          "hint": "For React",
+          "platforms": ["web", "desktop"],
+          "frameworks": ["react-vite", "nextjs", "tauri", "electron", "wails"],
+          "commands": ["__ADD__ three @react-three/fiber @react-three/drei"],
+          "notes": ["Adds React Three Fiber + drei (3D as React components). TypeScript users: also add @types/three."]
+        }
+      ]
+    },
+    {
       "id": "testing",
       "label": "Testing",
       "help": "Auto-checks your site still works.",
