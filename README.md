@@ -1,52 +1,35 @@
 # StackWizard — pick your stack, get the exact setup steps
 
+Answer a few questions (platform, framework, database, auth, payments, …) and
+StackWizard generates the exact commands, env keys, starter files, and a
+`setup.sh` for your scaffold. Share any configuration with a short link.
+
 ## Setup & run (this project)
 
 ```bash
 bun install
 bun dev      # http://localhost:3000
+bun test
 bun run build
 bun start
 bun run lint
 ```
 
-Env (optional): copy `.env.example` to `.env` to set `NEXT_PUBLIC_SITE_URL` (used only for the sitemap canonical URL).
+Env (optional): copy `.env.example` to `.env` to set `NEXT_PUBLIC_SITE_URL`
+(used only for the sitemap canonical URL).
 
----
+## How it works
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+- Recipes live in `data/*.json` (`web`, `mobile`, `desktop`, `addons`) —
+  never hardcode commands in components.
+- `lib/assemble.ts` turns selections into build steps (`assemble`),
+  a one-file installer (`buildScript`), and sanitizes the folder name
+  (`sanitizeAppName`).
+- `lib/share.ts` encodes selections into `?s=` links and short `/s/…` routes.
+- `components/Wizard.tsx` renders the questionnaire; `components/Guide.tsx`
+  renders the generated guide.
 
-## Getting Started
+## Learn more
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying)

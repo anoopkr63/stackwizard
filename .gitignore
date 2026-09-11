@@ -40,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local reference assets (large binaries — docs stay tracked)
+reference/*.png
+reference/*.webm
+reference/*.mp4
+reference/*.mov
+reference/*.zip
