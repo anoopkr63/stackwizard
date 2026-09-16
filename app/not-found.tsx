@@ -22,8 +22,9 @@ export default function NotFound() {
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted sm:text-lg">
           The link may be old, or the address was typed wrong. The tool itself
-          is on the home page — your selections are kept in the address bar, so
-          shared links still work from there.
+          is on the home page. Share links look like <code className="font-mono">/s/…</code>
+          {" "}and are made with the Copy share link button — open one and it loads
+          that exact setup.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link

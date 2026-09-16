@@ -534,10 +534,18 @@ summary:focus-visible {
   html {
     scroll-behavior: auto;
   }
+  /* Duration alone is not enough: an `infinite` animation still restarts
+     every 0.01ms, which is a strobe, not a still frame. Pin every animation
+     to a single pass and kill the stagger delays. animation-fill-mode is
+     deliberately NOT overridden — .anim-hero relies on `forwards` to stay
+     visible, and forcing it onto `twinkle` would freeze the sparkle at 25%. */
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
   }
 }

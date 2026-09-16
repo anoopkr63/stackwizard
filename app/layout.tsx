@@ -38,6 +38,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
   openGraph: {
     siteName,
+    url: "/",
     title: `${siteName} — ${siteTagline.toLowerCase()}`,
     description:
       "Answer a few plain questions. Get copy-paste terminal commands in the right order, each explained in one line.",

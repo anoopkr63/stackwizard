@@ -1,9 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import web from "@/data/web.json";
 import mobile from "@/data/mobile.json";
 import desktop from "@/data/desktop.json";
+import { assemble, catalogFor, devCommand } from "@/lib/assemble";
+import type { WizardSelections } from "@/lib/types";
 import ChipScatter from "./ChipScatter";
 import TwinkleField from "./TwinkleField";
 import { useSelection } from "./SelectionProvider";
@@ -15,9 +18,31 @@ const FRAMEWORKS = [
 ];
 
 export default function Hero() {
-  // Terminal card mirrors the live app folder from the wizard below.
-  const { dir } = useSelection();
-  const preview = [`npm create next-app@latest ${dir}`, `cd ${dir}`, "npm install", "npm run dev"];
+  // Terminal card mirrors the live wizard below. Every line comes out of the
+  // generator, so it can never promise an npm-only scaffold to someone who
+  // picked bun + SvelteKit. With nothing picked yet it shows the platform's
+  // first framework as a worked example — still generated, still the user's
+  // package manager and folder.
+  const { sel } = useSelection();
+  const preview = useMemo(() => {
+    const catalog = catalogFor(sel.platform);
+    const firstOf = (id: string) =>
+      catalog.categories.find((c) => c.id === id)?.options[0]?.id ?? "";
+    const src: WizardSelections = sel.framework
+      ? sel
+      : {
+          ...sel,
+          language: sel.language || "typescript",
+          framework: firstOf("framework"),
+          styling: firstOf("styling"),
+        };
+    const scaffold = assemble(src)
+      .map((s) => s.command)
+      .filter((c) => !c.startsWith("#") && !c.includes("\n"))
+      .slice(0, 3);
+    const dev = devCommand(src.packageManager, src.platform, src.framework, src.target);
+    return [...scaffold, dev.command];
+  }, [sel]);
   return (
     <section id="hero" className="relative overflow-hidden border-b border-line">
       <div aria-hidden="true" className="bg-grid pointer-events-none absolute inset-0" />
@@ -60,7 +85,7 @@ export default function Hero() {
         >
           <Link
             href="#build"
-            className="anim-cta-glow rounded-full bg-ember px-7 py-3.5 text-base font-semibold text-white transition-colors hover:bg-ember-deep"
+            className="anim-cta-glow rounded-full bg-ember-deep px-7 py-3.5 text-base font-semibold text-white transition-[filter] hover:brightness-90"
           >
             Build my stack
           </Link>
@@ -74,7 +99,7 @@ export default function Hero() {
 
         {/* terminal card */}
         <div
-          aria-label="Example of generated commands"
+          aria-label={sel.framework ? "Your first commands" : "Example of generated commands"}
           className="anim-hero anim-float mx-auto mt-12 max-w-2xl rounded-2xl bg-night p-2 text-left shadow-xl"
           style={{ animationDelay: "360ms" }}
         >

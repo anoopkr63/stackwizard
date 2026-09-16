@@ -1,27 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { devCommand } from "@/lib/assemble";
+import { copyText } from "@/lib/clipboard";
 import { SectionEyebrow, SectionSub, SectionTitle } from "./Section";
 import Reveal from "./Reveal";
 import { useSelection } from "./SelectionProvider";
 
 function Code({ lines, label }: { lines: string[]; label: string }) {
-  const [copied, setCopied] = useState(false);
+  const [state, setState] = useState<"idle" | "ok" | "fail">("idle");
+  const timer = useRef<number | null>(null);
+
+  // A 2s countdown outliving the component would setState on a dead tree.
+  useEffect(
+    () => () => {
+      if (timer.current !== null) window.clearTimeout(timer.current);
+    },
+    []
+  );
 
   async function copy() {
-    const text = lines.join("\n");
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      ta.remove();
-    }
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
+    const ok = await copyText(lines.join("\n"));
+    setState(ok ? "ok" : "fail");
+    if (timer.current !== null) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setState("idle"), 2000);
   }
 
   return (
@@ -42,7 +44,7 @@ function Code({ lines, label }: { lines: string[]; label: string }) {
         aria-label={`Copy: ${label}`}
         className="absolute right-2 top-2 rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-cream transition-colors hover:bg-white/20"
       >
-        {copied ? "Copied" : "Copy"}
+        {state === "ok" ? "Copied" : state === "fail" ? "Press Ctrl+C" : "Copy"}
       </button>
     </div>
   );
@@ -52,8 +54,10 @@ const card =
   "lift h-full rounded-3xl border-2 border-white bg-white p-6 shadow-[0_18px_40px_-24px_rgba(27,20,13,0.35)]";
 
 export default function Guide() {
-  // Examples mirror the live app folder from the wizard above.
-  const { dir } = useSelection();
+  // Examples mirror the live wizard: same folder, same package manager, and
+  // the same run command the generator emits — never a hardcoded npm run dev.
+  const { sel, dir } = useSelection();
+  const dev = devCommand(sel.packageManager, sel.platform, sel.framework, sel.target);
   return (
     <section id="guide" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-14 sm:px-6 lg:py-20">
       <Reveal>
@@ -69,8 +73,8 @@ export default function Guide() {
             <ol className="mt-3 list-decimal space-y-2 pl-5 leading-relaxed text-muted">
               <li>Every box starts blank — answer only what you need, skip the rest.</li>
               <li>
-                Hover any step and hit Copy — the whole block copies at once. Paste
-                into your terminal, press Enter.
+                Hit Copy on any step — the whole block copies at once. Paste into
+                your terminal, press Enter.
               </li>
               <li>
                 Once you enter <code className="font-mono text-sm text-ink">{dir}</code>,
@@ -81,7 +85,8 @@ export default function Guide() {
                 <code className="font-mono text-sm text-ink">Ctrl+C</code> stops it.
               </li>
             </ol>
-            <Code lines={[`cd ${dir}`, "npm run dev"]} label="run commands" />
+            <Code lines={[`cd ${dir}`, dev.command]} label="run commands" />
+            <p className="mt-2 text-sm text-muted">{dev.note}.</p>
           </div>
         </Reveal>
         <Reveal delay={90}>
@@ -128,8 +133,9 @@ export default function Guide() {
           <div className={card}>
               <h3 className="display text-xl font-semibold">Share</h3>
               <p className="mt-2 leading-relaxed text-muted">
-                Hit Copy share link above — the address then holds your exact
-                setup. Send it to a friend and they get your steps.
+                Hit Copy share link above — that copies a link holding your exact
+                setup. The address bar stays clean; paste the link to a friend and
+                they get your steps.
               </p>
           </div>
         </Reveal>

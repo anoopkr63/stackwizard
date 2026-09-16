@@ -194,8 +194,8 @@
           "hint": "For Next.js",
           "platforms": ["web"],
           "frameworks": ["nextjs"],
-          "commands": ["__ADD__ next-auth"],
-          "notes": ["Adds Auth.js. Best with Next.js."]
+          "commands": ["__ADD__ next-auth@beta"],
+          "notes": ["Adds Auth.js v5 (the @beta tag — npm latest is still the v4 API). Best with Next.js."]
         },
         {
           "id": "clerk",
@@ -404,7 +404,7 @@
           "label": "React Three Fiber",
           "hint": "For React",
           "platforms": ["web", "desktop"],
-          "frameworks": ["react-vite", "nextjs", "tauri", "electron", "wails"],
+          "frameworks": ["react-vite", "nextjs", "tauri", "wails"],
           "commands": ["__ADD__ three @react-three/fiber @react-three/drei"],
           "notes": ["Adds React Three Fiber + drei (3D as React components). TypeScript users: also add @types/three."]
         }
@@ -495,9 +495,9 @@
         {
           "id": "cursor",
           "label": "Cursor",
-          "hint": "Uses .muserules",
-          "commands": ["__AI_RULES_CURSOR__"],
-          "notes": ["Creates .muserules with your stack + rules"]
+          "hint": "Uses .cursor/rules",
+          "commands": ["mkdir -p .cursor/rules", "__AI_RULES_CURSOR__"],
+          "notes": ["Makes the folder Cursor reads rules from", "Creates .cursor/rules/stackwizard.mdc with your stack + rules"]
         },
         {
           "id": "copilot",
@@ -539,70 +539,70 @@
           "id": "frontend-design",
           "label": "Premium UI design",
           "hint": "Distinctive pages",
-          "commands": ["npx -y skills add anthropics/skills --skill frontend-design -y"],
+          "commands": ["__PMX_YES__ skills add anthropics/skills --skill frontend-design -y"],
           "notes": ["Installs Frontend Design"]
         },
         {
           "id": "web-guidelines",
           "label": "Design guidelines audit",
           "hint": "UI + a11y check",
-          "commands": ["npx -y skills add vercel-labs/agent-skills --skill web-design-guidelines -y"],
+          "commands": ["__PMX_YES__ skills add vercel-labs/agent-skills --skill web-design-guidelines -y"],
           "notes": ["Installs Design Guidelines"]
         },
         {
           "id": "shadcn",
           "label": "shadcn/ui",
           "hint": "Components done right",
-          "commands": ["npx -y skills add shadcn/ui --skill shadcn -y"],
+          "commands": ["__PMX_YES__ skills add shadcn/ui --skill shadcn -y"],
           "notes": ["Teaches your AI assistant shadcn components"]
         },
         {
           "id": "webapp-testing",
           "label": "App auto-testing",
           "hint": "Playwright site tests",
-          "commands": ["npx -y skills add anthropics/skills --skill webapp-testing -y"],
+          "commands": ["__PMX_YES__ skills add anthropics/skills --skill webapp-testing -y"],
           "notes": ["Installs App Testing"]
         },
         {
           "id": "tdd",
           "label": "Test-first coding",
           "hint": "Tests before code",
-          "commands": ["npx -y skills add obra/superpowers --skill test-driven-development -y"],
+          "commands": ["__PMX_YES__ skills add obra/superpowers --skill test-driven-development -y"],
           "notes": ["Installs Test-First Coding"]
         },
         {
           "id": "code-review",
           "label": "Code review",
           "hint": "Review before merge",
-          "commands": ["npx -y skills add obra/superpowers --skill requesting-code-review -y"],
+          "commands": ["__PMX_YES__ skills add obra/superpowers --skill requesting-code-review -y"],
           "notes": ["Installs Code Review"]
         },
         {
           "id": "postgres-rules",
           "label": "Postgres best practices",
           "hint": "Safe Postgres rules",
-          "commands": ["npx -y skills add supabase/agent-skills --skill supabase-postgres-best-practices -y"],
+          "commands": ["__PMX_YES__ skills add supabase/agent-skills --skill supabase-postgres-best-practices -y"],
           "notes": ["Installs Postgres Rules"]
         },
         {
           "id": "mcp-builder",
           "label": "MCP builder",
           "hint": "Link external tools",
-          "commands": ["npx -y skills add anthropics/skills --skill mcp-builder -y"],
+          "commands": ["__PMX_YES__ skills add anthropics/skills --skill mcp-builder -y"],
           "notes": ["Installs MCP Builder"]
         },
         {
           "id": "documents",
           "label": "Document skills",
           "hint": "PDF + Office files",
-          "commands": ["npx -y skills add anthropics/skills --skill pdf --skill docx --skill pptx --skill xlsx -y"],
+          "commands": ["__PMX_YES__ skills add anthropics/skills --skill pdf --skill docx --skill pptx --skill xlsx -y"],
           "notes": ["Teaches your AI assistant PDF + Office files"]
         },
         {
           "id": "skill-creator",
           "label": "Skill creator",
           "hint": "Make your own",
-          "commands": ["npx -y skills add anthropics/skills --skill skill-creator -y"],
+          "commands": ["__PMX_YES__ skills add anthropics/skills --skill skill-creator -y"],
           "notes": ["Teaches your AI assistant to make new skills"]
         }
       ]

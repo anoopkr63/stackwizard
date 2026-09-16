@@ -1,33 +1,18 @@
 import type { BuildStep, PackageManagerId, PlatformId, WizardSelections } from "./types";
-import web from "@/data/web.json";
-import mobile from "@/data/mobile.json";
-import desktop from "@/data/desktop.json";
 import addons from "@/data/addons.json";
+import {
+  catalogFor,
+  defaultSelections,
+  isOptionVisible,
+  normalizeSelections,
+  type OptionLike,
+} from "./selections";
 
-export function catalogFor(platform: PlatformId) {
-  if (platform === "mobile") return mobile;
-  if (platform === "desktop") return desktop;
-  return web;
-}
-
-// An option is visible only on its listed platforms (when set) and only when
-// its allow-list (showWhen) matches and its deny-list (hideWhen) doesn't —
-// e.g. Stripe's package differs per platform, Mongoose needs MongoDB.
-// Used by the UI and the generator so hidden picks can never leak into the
-// output (stale share links included).
-export function isOptionVisible(opt: OptionLike, selections: WizardSelections): boolean {
-  if (opt.platforms && !opt.platforms.includes(selections.platform ?? "web")) return false;
-  // Blank framework (nothing picked yet) counts as visible — never hide
-  // options before the user has chosen.
-  if (opt.frameworks && selections.framework && !opt.frameworks.includes(selections.framework)) return false;
-  for (const [groupId, allowed] of Object.entries(opt.showWhen ?? {})) {
-    if (!allowed.includes(selections.addons[groupId] ?? "none")) return false;
-  }
-  for (const [groupId, denied] of Object.entries(opt.hideWhen ?? {})) {
-    if (denied.includes(selections.addons[groupId] ?? "none")) return false;
-  }
-  return true;
-}
+// The catalog/visibility/defaults helpers live in ./selections so that
+// lib/share.ts can normalize without importing this module (circular import).
+// Re-exported here because every existing caller imports them from @/lib/assemble.
+export { catalogFor, defaultSelections, isOptionVisible, normalizeSelections };
+export type { OptionLike };
 
 // Per-framework overrides win (Clerk's package differs per framework),
 // then per-platform overrides, then the base commands.
@@ -94,8 +79,8 @@ function envBlocks(sel: WizardSelections): { lines: string[]; services: string[]
   };
   const database = live("database", sel.addons.database ?? "none") ? sel.addons.database! : "none";
   const auth = live("auth", sel.addons.auth ?? "none") ? sel.addons.auth! : "none";
-  const payments = sel.addons.payments || "none";
-  const orm = sel.addons.orm || "none";
+  const payments = live("payments", sel.addons.payments ?? "none") ? sel.addons.payments! : "none";
+  const orm = live("orm", sel.addons.orm ?? "none") ? sel.addons.orm! : "none";
 
   const serverOnlyNote =
     PUB && PUB !== ""
@@ -148,7 +133,7 @@ function envBlocks(sel: WizardSelections): { lines: string[]; services: string[]
     services.push("Auth.js");
     lines.push(
       "",
-      "# Auth.js — authjs.dev → your provider → OAuth app. Generate the secret with: npx auth secret",
+      `# Auth.js — authjs.dev → your provider → OAuth app. Generate the secret with: ${pmCommands(sel.packageManager).pmxYes} auth secret`,
       "AUTH_SECRET=replace-with-32-char-random-string",
       "AUTH_GITHUB_ID=Iv1.xxxxxxxxxxxxxxxx",
       "AUTH_GITHUB_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -174,11 +159,13 @@ function envBlocks(sel: WizardSelections): { lines: string[]; services: string[]
     } else {
       lines.push(
         "",
-        "# Auth0 — manage.auth0.com → Applications → your app → Settings. Generate AUTH0_SECRET with: openssl rand -hex 32",
-        "AUTH0_SECRET=replace-with-32-char-random-string",
-        "AUTH0_BASE_URL=http://localhost:3000",
-        "AUTH0_ISSUER_BASE_URL=https://your-tenant.us.auth0.com",
+        "# Auth0 — manage.auth0.com → Applications → your app (Regular Web Application) → Settings.",
+        "# These are the v4 keys @auth0/nextjs-auth0 reads — the v3 base-URL/issuer pair is gone.",
+        "# Generate AUTH0_SECRET with: openssl rand -hex 32",
+        "AUTH0_DOMAIN=your-tenant.us.auth0.com",
         "AUTH0_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "AUTH0_SECRET=replace-with-32-char-random-string",
+        "APP_BASE_URL=http://localhost:3000",
         serverOnlyNote,
         "AUTH0_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       );
@@ -234,9 +221,10 @@ function envBlocks(sel: WizardSelections): { lines: string[]; services: string[]
     services.push("RevenueCat");
     lines.push(
       "",
-      "# RevenueCat — app.revenuecat.com → API keys (one per store)",
-      "REVENUECAT_APPLE_API_KEY=appl_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      "REVENUECAT_GOOGLE_API_KEY=goog_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "# RevenueCat — app.revenuecat.com → API keys (one per store).",
+      "# Store SDK keys are public by design — they ship inside the app bundle.",
+      `${PUB}REVENUECAT_APPLE_API_KEY=appl_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`,
+      `${PUB}REVENUECAT_GOOGLE_API_KEY=goog_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`,
     );
   } else if (payments === "lemonsqueezy") {
     services.push("Lemon Squeezy");
@@ -359,46 +347,59 @@ const STUB_SVELTE_HEALTH = `export function GET() {
   return Response.json({ ok: true });
 };`;
 
-const STUB_ENV_TS = `// Read env safely: required("STRIPE_SECRET_KEY") throws listing what's missing.
-export function required(name: string): string {
-  const value = process.env[name];
+// Env helpers take the VALUE, never a computed key. Next.js and Expo only
+// inline static `process.env.KEY` reads into browser/app bundles — a
+// computed lookup is left untouched and reads undefined at runtime, so the
+// old one-arg helper threw on every correctly-filled .env. (Next.js
+// "Environment Variables": "dynamic lookups will not be inlined"; Expo:
+// "Alternative versions of the expression are not supported ... will not be
+// inlined".) Vite replaces `import.meta.env.KEY` the same way.
+const STUB_ENV_TS = `// Read env safely — pass the value in:
+//   required("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL)
+// Next.js only inlines static process.env.KEY reads — a computed lookup is not replaced.
+export function required(name: string, value: string | undefined): string {
   if (!value) throw new Error("Missing env: " + name + " — add it to .env.local");
   return value;
 }`;
 
-const STUB_ENV_JS = `// Read env safely: required("STRIPE_SECRET_KEY") throws listing what's missing.
-export function required(name) {
-  const value = process.env[name];
+const STUB_ENV_JS = `// Read env safely — pass the value in:
+//   required("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL)
+// Next.js only inlines static process.env.KEY reads — a computed lookup is not replaced.
+export function required(name, value) {
   if (!value) throw new Error("Missing env: " + name + " — add it to .env.local");
   return value;
 }`;
 
-const STUB_ENV_VITE_TS = `// Read env safely: required("VITE_API_URL") throws listing what's missing.
-export function required(name: string): string {
-  const value = import.meta.env[name] as string | undefined;
+const STUB_ENV_VITE_TS = `// Read env safely — pass the value in:
+//   required("VITE_API_URL", import.meta.env.VITE_API_URL)
+// Vite replaces static import.meta.env.KEY reads, never a computed lookup.
+export function required(name: string, value: string | undefined): string {
   if (!value) throw new Error("Missing env: " + name + " — add it to .env");
   return value;
 }`;
 
-const STUB_ENV_VITE_JS = `// Read env safely: required("VITE_API_URL") throws listing what's missing.
-export function required(name) {
-  const value = import.meta.env[name];
+const STUB_ENV_VITE_JS = `// Read env safely — pass the value in:
+//   required("VITE_API_URL", import.meta.env.VITE_API_URL)
+// Vite replaces static import.meta.env.KEY reads, never a computed lookup.
+export function required(name, value) {
   if (!value) throw new Error("Missing env: " + name + " — add it to .env");
   return value;
 }`;
 
 // Mobile env helper — zero imports, new path only (lib/env), never a
-// template-owned file. Reads lazily so it can't break the app boot.
-const STUB_ENV_MOBILE_TS = `// Read env safely: required("API_URL") throws listing what's missing.
-export function required(name: string): string {
-  const value = process.env[name];
+// template-owned file.
+const STUB_ENV_MOBILE_TS = `// Read env safely — pass the value in:
+//   required("EXPO_PUBLIC_API_URL", process.env.EXPO_PUBLIC_API_URL)
+// Expo only inlines static process.env.KEY reads — a computed lookup is not replaced.
+export function required(name: string, value: string | undefined): string {
   if (!value) throw new Error("Missing env: " + name + " — add it to .env");
   return value;
 }`;
 
-const STUB_ENV_MOBILE_JS = `// Read env safely: required("API_URL") throws listing what's missing.
-export function required(name) {
-  const value = process.env[name];
+const STUB_ENV_MOBILE_JS = `// Read env safely — pass the value in:
+//   required("EXPO_PUBLIC_API_URL", process.env.EXPO_PUBLIC_API_URL)
+// Expo only inlines static process.env.KEY reads — a computed lookup is not replaced.
+export function required(name, value) {
   if (!value) throw new Error("Missing env: " + name + " — add it to .env");
   return value;
 }`;
@@ -512,9 +513,13 @@ export const config = {
 
 // Next.js-only: Auth.js v5 config (GitHub provider, TODO for others).
 // Reads AUTH_SECRET + AUTH_GITHUB_ID/SECRET from .env.local — the same
-// keys the env step documents. Dep guaranteed via the NextAuth pick.
+// keys the env step documents. Dep guaranteed via the NextAuth pick, which
+// installs next-auth@beta: the `latest` tag is still v4, whose API has no
+// `handlers`/`auth` export at all. The provider module is lowercase on disk
+// (providers/github.js) — "providers/GitHub" resolves only on a
+// case-insensitive filesystem and dies in CI, Docker and on Linux.
 const STUB_NEXTAUTH_LIB = `import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/GitHub";
+import GitHub from "next-auth/providers/github";
 
 export const { handlers, auth } = NextAuth({
   providers: [GitHub],
@@ -591,17 +596,23 @@ export async function POST(req) {
 // when the "Production folders" toggle is off). SvelteKit is the exception:
 // it has no env file, so its stubs carry the $env check inline.
 
-function serviceAccess(framework: string, language: string): string {
-  // Next.js inlines NEXT_PUBLIC_* into process.env; native runtimes (Expo /
-  // bare React Native, per this repo's mobile env helper) read process.env;
-  // SvelteKit exposes PUBLIC_* only via $env/dynamic/public (import.meta
-  // holds VITE_* there, so import.meta.env[PUBLIC_*] is always undefined);
-  // every Vite-family UI (incl. Ionic React) reads import.meta.env.
-  // The `as` cast is TS-only — emitting it into a .js stub is a SyntaxError.
-  if (framework === "nextjs") return "process.env[name]";
-  if (framework === "expo" || framework === "react-native") return "process.env[name]";
-  if (framework === "sveltekit") return "env[name]";
-  return language === "typescript" ? "import.meta.env[name] as string | undefined" : "import.meta.env[name]";
+// The object each framework's env keys live on. Reads off it are always
+// written out STATICALLY (`process.env.NEXT_PUBLIC_X`), because that is the
+// only form Next.js, Expo and Vite replace at build time.
+// SvelteKit exposes PUBLIC_* only via $env/dynamic/public (import.meta holds
+// VITE_* there); every Vite-family UI (incl. Ionic React) reads
+// import.meta.env.
+function envAccessor(framework: string): string {
+  if (framework === "nextjs") return "process.env";
+  if (framework === "expo" || framework === "react-native") return "process.env";
+  if (framework === "sveltekit") return "env";
+  return "import.meta.env";
+}
+
+// One call shape for every stub: the key name (for the error message) plus a
+// static read of that exact key (for the value).
+function requiredCall(sel: WizardSelections, key: string): string {
+  return `required("${key}", ${envAccessor(sel.framework)}.${key})`;
 }
 
 // Frameworks whose env model the stubs below speak. Nuxt wants its module
@@ -639,11 +650,10 @@ function requiredFn(sel: WizardSelections): string {
   // (hoisted ESM import stays valid after the package import above).
   if (sel.framework !== "sveltekit") return `import { required } from "./env";`;
   const ts = sel.language === "typescript";
-  const sig = ts ? "(name: string): string" : "(name)";
+  const sig = ts ? "(name: string, value: string | undefined): string" : "(name, value)";
   return `import { env } from "$env/dynamic/public";
 
 function required${sig} {
-  const value = ${serviceAccess(sel.framework, sel.language)};
   if (!value) throw new Error("Missing env: " + name + " — add it to ${envFileFor(sel.framework)}");
   return value;
 }`;
@@ -656,8 +666,8 @@ function supabaseStub(sel: WizardSelections): string {
 ${requiredFn(sel)}
 
 export const supabase = createClient(
-  required("${PUB}SUPABASE_URL"),
-  required("${PUB}SUPABASE_ANON_KEY")
+  ${requiredCall(sel, `${PUB}SUPABASE_URL`)},
+  ${requiredCall(sel, `${PUB}SUPABASE_ANON_KEY`)}
 );`;
 }
 
@@ -667,7 +677,7 @@ function stripeStub(sel: WizardSelections): string {
 
 ${requiredFn(sel)}
 
-export const stripePromise = loadStripe(required("${PUB}STRIPE_PUBLISHABLE_KEY"));`;
+export const stripePromise = loadStripe(${requiredCall(sel, `${PUB}STRIPE_PUBLISHABLE_KEY`)});`;
 }
 
 function firebaseStub(sel: WizardSelections): string {
@@ -682,12 +692,12 @@ import { getFirestore } from "firebase/firestore";
 ${requiredFn(sel)}
 
 ${app}
-  apiKey: required("${PUB}FIREBASE_API_KEY"),
-  authDomain: required("${PUB}FIREBASE_AUTH_DOMAIN"),
-  projectId: required("${PUB}FIREBASE_PROJECT_ID"),
-  storageBucket: required("${PUB}FIREBASE_STORAGE_BUCKET"),
-  messagingSenderId: required("${PUB}FIREBASE_MESSAGING_SENDER_ID"),
-  appId: required("${PUB}FIREBASE_APP_ID"),
+  apiKey: ${requiredCall(sel, `${PUB}FIREBASE_API_KEY`)},
+  authDomain: ${requiredCall(sel, `${PUB}FIREBASE_AUTH_DOMAIN`)},
+  projectId: ${requiredCall(sel, `${PUB}FIREBASE_PROJECT_ID`)},
+  storageBucket: ${requiredCall(sel, `${PUB}FIREBASE_STORAGE_BUCKET`)},
+  messagingSenderId: ${requiredCall(sel, `${PUB}FIREBASE_MESSAGING_SENDER_ID`)},
+  appId: ${requiredCall(sel, `${PUB}FIREBASE_APP_ID`)},
 });
 
 export const firebaseAuth = getAuth(app);
@@ -731,7 +741,7 @@ ${iface}// Create the order on your server first (POST /api/payments/razorpay/or
 // then pass it here to open the Razorpay popup.
 export async function openRazorpayCheckout${sig} {
   await loadCheckoutJs();
-  const key = required("${PUB}RAZORPAY_KEY_ID");
+  const key = ${requiredCall(sel, `${PUB}RAZORPAY_KEY_ID`)};
   const rzp = ${ctor}
     key,
     order_id: order.id,
@@ -750,23 +760,23 @@ function paypalStub(sel: WizardSelections): string {
 ${requiredFn(sel)}
 
 export function paypalScript() {
-  return loadScript({ clientId: required("${PUB}PAYPAL_CLIENT_ID"), currency: "USD" });
+  return loadScript({ clientId: ${requiredCall(sel, `${PUB}PAYPAL_CLIENT_ID`)}, currency: "USD" });
 }`;
 }
 
 function paddleStub(sel: WizardSelections): string {
   const PUB = publicPrefix(sel.framework);
-  const envArg =
-    sel.language === "typescript"
-      ? 'required("${PUB}PADDLE_ENVIRONMENT") as "sandbox" | "production"'
-      : 'required("${PUB}PADDLE_ENVIRONMENT")';
+  // Single quotes here used to leave a literal `${PUB}` in the generated
+  // file, so the key never matched anything in .env and paddle() threw.
+  const envRead = requiredCall(sel, `${PUB}PADDLE_ENVIRONMENT`);
+  const envArg = sel.language === "typescript" ? `${envRead} as "sandbox" | "production"` : envRead;
   return `import { initializePaddle } from "@paddle/paddle-js";
 
 ${requiredFn(sel)}
 
 export function paddle() {
   return initializePaddle({
-    token: required("${PUB}PADDLE_CLIENT_TOKEN"),
+    token: ${requiredCall(sel, `${PUB}PADDLE_CLIENT_TOKEN`)},
     environment: ${envArg},
   });
 }`;
@@ -790,8 +800,8 @@ function supabaseMobileStub(sel: WizardSelections): string {
 ${requiredFn(sel)}
 
 export const supabase = createClient(
-  required("${PUB}SUPABASE_URL"),
-  required("${PUB}SUPABASE_ANON_KEY"),
+  ${requiredCall(sel, `${PUB}SUPABASE_URL`)},
+  ${requiredCall(sel, `${PUB}SUPABASE_ANON_KEY`)},
   {
     auth: {
       // TODO: keep users logged in across restarts —
@@ -809,6 +819,7 @@ export const supabase = createClient(
 // RevenueCat on native (Expo / bare React Native): one configure call at
 // startup picks the store key per platform. Dep guaranteed via the pick.
 function revenuecatStub(sel: WizardSelections): string {
+  const PUB = publicPrefix(sel.framework);
   return `import Purchases from "react-native-purchases";
 import { Platform } from "react-native";
 
@@ -817,7 +828,9 @@ ${requiredFn(sel)}
 // Call once at startup (e.g. in your root layout) before showing paywalls.
 export async function configurePurchases() {
   const apiKey =
-    Platform.OS === "ios" ? required("REVENUECAT_APPLE_API_KEY") : required("REVENUECAT_GOOGLE_API_KEY");
+    Platform.OS === "ios"
+      ? ${requiredCall(sel, `${PUB}REVENUECAT_APPLE_API_KEY`)}
+      : ${requiredCall(sel, `${PUB}REVENUECAT_GOOGLE_API_KEY`)};
   await Purchases.configure({ apiKey });
 }`;
 }
@@ -845,7 +858,7 @@ ${requiredFn(sel)}
 ${iface}// Create the order on your server first, then pass it here.
 export function openRazorpayCheckout${sig} {
   return RazorpayCheckout.open({
-    key: required("${PUB}RAZORPAY_KEY_ID"),
+    key: ${requiredCall(sel, `${PUB}RAZORPAY_KEY_ID`)},
     order_id: order.id,
     amount: order.amount,
     currency: order.currency,
@@ -937,28 +950,69 @@ try {
 
 const heredoc = (file: string, body: string) => `cat > ${file} <<'EOF'\n${body}\nEOF`;
 
+// Next.js server routes a picked service cannot work without: the Stripe
+// webhook, the Razorpay order/verify pair, the Auth.js catch-all handler.
+// These used to live inside expandStructure, which only runs when the
+// optional "Production folders" toggle is on — so turning the toggle off
+// installed next-auth and wrote src/lib/auth.ts with nothing serving it
+// (every /api/auth/* request 404s). They are emitted from the add-on
+// section now, toggle or not. Every mkdir is -p, so the pair is idempotent
+// when the folders step made the dir already.
+function nextServiceRoutes(
+  sel: WizardSelections,
+  service: "stripe" | "razorpay" | "nextauth"
+): { command: string; note: string }[] {
+  const ts = sel.language === "typescript";
+  const ext = ts ? "ts" : "js";
+  if (service === "stripe") {
+    return [
+      { command: `mkdir -p "src/app/api/webhooks/stripe"`, note: "Makes the Stripe webhook folder (skipped if it exists)" },
+      {
+        command: heredoc(`src/app/api/webhooks/stripe/route.${ext}`, ts ? STUB_STRIPE_WH_TS : STUB_STRIPE_WH_JS),
+        note: "Catches Stripe events",
+      },
+    ];
+  }
+  if (service === "razorpay") {
+    return [
+      {
+        command: `mkdir -p "src/app/api/payments/razorpay/order" "src/app/api/payments/razorpay/verify"`,
+        note: "Makes the Razorpay route folders (skipped if they exist)",
+      },
+      {
+        command: heredoc(
+          `src/app/api/payments/razorpay/order/route.${ext}`,
+          ts ? STUB_RAZORPAY_ORDER_TS : STUB_RAZORPAY_ORDER_JS
+        ),
+        note: "Creates Razorpay orders (secret stays server-side)",
+      },
+      {
+        command: heredoc(
+          `src/app/api/payments/razorpay/verify/route.${ext}`,
+          ts ? STUB_RAZORPAY_VERIFY_TS : STUB_RAZORPAY_VERIFY_JS
+        ),
+        note: "Verifies Razorpay payments",
+      },
+    ];
+  }
+  return [
+    // Brackets are quoted — an unquoted glob would expand if the dir exists.
+    { command: `mkdir -p "src/app/api/auth/[...nextauth]"`, note: "Makes the Auth.js route folder (skipped if it exists)" },
+    {
+      command: heredoc(`"src/app/api/auth/[...nextauth]/route.${ext}"`, STUB_NEXTAUTH_ROUTE),
+      note: "Serves the Auth.js API (sign-in, callback, session)",
+    },
+  ];
+}
+
 function expandStructure(sel: WizardSelections): { command: string; note: string }[] {
   const out: { command: string; note: string }[] = [];
   const dirs = STRUCTURE_DIRS[sel.framework];
   if (!dirs) return out; // unknown framework — skip silently
   const ts = sel.language === "typescript";
   const ext = ts ? "ts" : "js";
-  // Selection + liveness (a stale share-link value for a hidden option
-  // must never scaffold dirs or routes).
-  const stripe = (sel.addons.payments ?? "none") === "stripe" && isAddonLive(sel, "payments", "stripe");
-  const razorpay = (sel.addons.payments ?? "none") === "razorpay" && isAddonLive(sel, "payments", "razorpay");
-  const nextauth = (sel.addons.auth ?? "none") === "nextauth" && isAddonLive(sel, "auth", "nextauth");
-  const allDirs =
-    sel.framework === "nextjs"
-      ? [
-          ...dirs,
-          ...(stripe ? ["src/app/api/webhooks/stripe"] : []),
-          ...(razorpay ? ["src/app/api/payments/razorpay/order", "src/app/api/payments/razorpay/verify"] : []),
-          ...(nextauth ? ["src/app/api/auth/[...nextauth]"] : []),
-        ]
-      : dirs;
   out.push({
-    command: `mkdir -p ${allDirs.map((d) => `"${d}"`).join(" ")}`,
+    command: `mkdir -p ${dirs.map((d) => `"${d}"`).join(" ")}`,
     note: "Makes production folders",
   });
   out.push({
@@ -968,35 +1022,6 @@ function expandStructure(sel: WizardSelections): { command: string; note: string
   if (sel.framework === "nextjs") {
     out.push({ command: heredoc(`src/app/api/health/route.${ext}`, STUB_HEALTH), note: "Checks your API is alive" });
     out.push({ command: heredoc(`src/lib/env.${ext}`, ts ? STUB_ENV_TS : STUB_ENV_JS), note: "Reads env with clear errors" });
-    if (stripe) {
-      out.push({
-        command: heredoc(`src/app/api/webhooks/stripe/route.${ext}`, ts ? STUB_STRIPE_WH_TS : STUB_STRIPE_WH_JS),
-        note: "Catches Stripe events",
-      });
-    }
-    if (razorpay) {
-      out.push({
-        command: heredoc(
-          `src/app/api/payments/razorpay/order/route.${ext}`,
-          ts ? STUB_RAZORPAY_ORDER_TS : STUB_RAZORPAY_ORDER_JS
-        ),
-        note: "Creates Razorpay orders (secret stays server-side)",
-      });
-      out.push({
-        command: heredoc(
-          `src/app/api/payments/razorpay/verify/route.${ext}`,
-          ts ? STUB_RAZORPAY_VERIFY_TS : STUB_RAZORPAY_VERIFY_JS
-        ),
-        note: "Verifies Razorpay payments",
-      });
-    }
-    if (nextauth) {
-      out.push({
-        // Brackets are quoted — an unquoted glob would expand if the dir exists.
-        command: heredoc(`"src/app/api/auth/[...nextauth]/route.${ext}"`, STUB_NEXTAUTH_ROUTE),
-        note: "Serves the Auth.js API (sign-in, callback, session)",
-      });
-    }
   } else if (sel.framework === "react-vite" || sel.framework === "vue" || sel.framework === "solid" || sel.framework === "ionic") {
     // Vite-based UIs share the import.meta env helper (Ionic React is Vite-based).
     out.push({ command: heredoc(`src/lib/env.${ext}`, ts ? STUB_ENV_VITE_TS : STUB_ENV_VITE_JS), note: "Reads env with clear errors" });
@@ -1023,22 +1048,6 @@ function expandStructure(sel: WizardSelections): { command: string; note: string
   return out;
 }
 
-// Minimal shape the visibility/command helpers need — deliberately wider than
-// StackOption so JSON-imported options (inferred `string[]`) stay assignable.
-interface OptionLike {
-  platforms?: string[];
-  frameworks?: string[];
-  overrides?: { [k: string]: { commands: string[]; notes: string[] } | undefined };
-  showWhen?: Record<string, string[]>;
-  hideWhen?: Record<string, string[]>;
-  commands: string[];
-  notes: string[];
-  commandsMobile?: string[];
-  notesMobile?: string[];
-  commandsDesktop?: string[];
-  notesDesktop?: string[];
-}
-
 // Translate placeholder tokens in data files into real commands
 // for the chosen package manager + language.
 function pmCommands(pm: PackageManagerId) {
@@ -1050,6 +1059,7 @@ function pmCommands(pm: PackageManagerId) {
         addDev: "yarn add -D",
         install: "yarn",
         pmx: "yarn dlx",
+        pmxYes: "yarn dlx",
         run: "yarn",
       };
     case "pnpm":
@@ -1059,6 +1069,7 @@ function pmCommands(pm: PackageManagerId) {
         addDev: "pnpm add -D",
         install: "pnpm install",
         pmx: "pnpm dlx",
+        pmxYes: "pnpm dlx",
         run: "pnpm",
       };
     case "bun":
@@ -1068,6 +1079,7 @@ function pmCommands(pm: PackageManagerId) {
         addDev: "bun add -d",
         install: "bun install",
         pmx: "bunx",
+        pmxYes: "bunx",
         run: "bun run",
       };
     case "npm":
@@ -1078,6 +1090,10 @@ function pmCommands(pm: PackageManagerId) {
         addDev: "npm install -D",
         install: "npm install",
         pmx: "npx",
+        // `npx` prompts before fetching a package it has never run; -y
+        // answers it. dlx/bunx install without asking and would forward a
+        // stray -y to the CLI itself, so they take the bare form.
+        pmxYes: "npx -y",
         run: "npm run",
       };
   }
@@ -1179,6 +1195,17 @@ function tauriCreate(pm: PackageManagerId, language: string, dir = "my-app"): st
   return `${t.pmx} create-tauri-app@latest ${dir} --template ${tpl} --manager ${pm} --identifier ${tauriIdentifier(dir)} --yes`;
 }
 
+// npm/yarn/pnpm swallow everything after `create <pkg>` as their own config
+// ("Unknown cli config --template"), so the flags need a `--` separator.
+// bunx does NOT consume that separator — it hands the literal `--` to
+// create-vite, whose parser then treats `--template` as a positional and
+// silently scaffolds a VANILLA project (no React, no Solid). So bun gets the
+// flags straight, everyone else keeps the separator.
+function viteCreate(pm: PackageManagerId, dir: string, template: string): string {
+  if (pm === "bun") return `bunx create-vite@latest ${dir} --template ${template}`;
+  return `${pmCommands(pm).create} vite@latest ${dir} -- --template ${template}`;
+}
+
 function resolveToken(cmd: string, pm: PackageManagerId, language: string, dir = "my-app"): string {
   const t = pmCommands(pm);
   const ts = language === "typescript";
@@ -1197,16 +1224,11 @@ function resolveToken(cmd: string, pm: PackageManagerId, language: string, dir =
     .replaceAll("__ADD__", t.add)
     .replaceAll("__ADD_DEV__", t.addDev)
     .replaceAll("__INSTALL__", t.install)
+    .replaceAll("__PMX_YES__", t.pmxYes)
     .replaceAll("__PMX__", t.pmx)
     .replaceAll("__PM__", pm)
-    .replaceAll(
-      "__VITE_CREATE__",
-      `${t.create} vite@latest ${dir} -- --template ${ts ? "react-ts" : "react"}`
-    )
-    .replaceAll(
-      "__VITE_SOLID_CREATE__",
-      `${t.create} vite@latest ${dir} -- --template ${ts ? "solid-ts" : "solid"}`
-    )
+    .replaceAll("__VITE_CREATE__", viteCreate(pm, dir, ts ? "react-ts" : "react"))
+    .replaceAll("__VITE_SOLID_CREATE__", viteCreate(pm, dir, ts ? "solid-ts" : "solid"))
     .replaceAll(
       "__NEXT_CREATE__",
       // `npm create next-app@latest … --flags` eats every --flag as an npm
@@ -1218,9 +1240,13 @@ function resolveToken(cmd: string, pm: PackageManagerId, language: string, dir =
         ? `${t.pmx} create-next-app@latest ${dir} ${ts ? "--ts" : "--js"} --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm`
         : `${t.create} next-app@latest ${dir} ${ts ? "--ts" : "--js"} --tailwind --eslint --app --src-dir --import-alias "@/*" --use-${pm}`
     )
+    // Forge ships @electron-forge/template-vite (JavaScript) and
+    // @electron-forge/template-vite-typescript. There is no
+    // "vite-javascript" template — Forge exits 1 with
+    // "Failed to locate custom template".
     .replaceAll(
       "__ELECTRON_CREATE__",
-      `${t.pmx} create-electron-app@latest ${dir} --template=vite-${ts ? "typescript" : "javascript"}`
+      `${t.pmx} create-electron-app@latest ${dir} --template=${ts ? "vite-typescript" : "vite"}`
     )
     .replaceAll("__WAILS_INIT__", `wails init -n ${dir} -t react${ts ? "-ts" : ""}`);
   // `bun create X` only resolves bun-create-* templates — plain create-*
@@ -1256,6 +1282,16 @@ const STUB_POSTCSS = `export default {
     "@tailwindcss/postcss": {},
   },
 };`;
+
+// Angular's builder (@angular/build) only looks for JSON PostCSS config —
+// postcssConfigurationFiles = ['postcss.config.json', '.postcssrc.json'].
+// A postcss.config.js is never read, so Tailwind silently does nothing and
+// styles.css ships as a raw unprocessed @import.
+const STUB_POSTCSS_JSON = `{
+  "plugins": {
+    "@tailwindcss/postcss": {}
+  }
+}`;
 
 const STUB_TAILWIND_CSS = `@import "tailwindcss";`;
 
@@ -1346,14 +1382,18 @@ function tailwindCommands(
   const cssPath = `${root}${cssRel}`;
   // Import spec relative to the entry file's own dir (both live under src/).
   const spec = `./${cssRel.replace(/^src\//, "")}`;
-  const commands = [
-    `${t.addDev} tailwindcss @tailwindcss/postcss`,
-    heredoc(`${root}postcss.config.js`, STUB_POSTCSS),
-    heredoc(cssPath, STUB_TAILWIND_CSS),
-  ];
+  const postcssCommand =
+    framework === "angular"
+      ? heredoc(".postcssrc.json", STUB_POSTCSS_JSON)
+      : heredoc(`${root}postcss.config.js`, STUB_POSTCSS);
+  const postcssNote =
+    framework === "angular"
+      ? "Wires Tailwind into PostCSS (Angular only reads JSON config — a .js file is ignored)"
+      : "Wires Tailwind into PostCSS (new file — your vite config is untouched)";
+  const commands = [`${t.addDev} tailwindcss @tailwindcss/postcss`, postcssCommand, heredoc(cssPath, STUB_TAILWIND_CSS)];
   const notes = [
     "Adds Tailwind v4 (PostCSS plugin)",
-    "Wires Tailwind into PostCSS (new file — your vite config is untouched)",
+    postcssNote,
     "Creates the Tailwind entry CSS (replaces the template's default styles)",
   ];
   if (framework === "sveltekit") {
@@ -1456,55 +1496,60 @@ createRoot(document.getElementById("root")${ts ? "!" : ""}).render(
     // `ng test` stays green.
     commands.push(`# Angular: src/styles.css is loaded via angular.json — nothing to link`);
     notes.push("Replaces src/styles.css (already wired in angular.json — nothing to link)");
+    // Angular 22 scaffolds src/app/app.ts (class App) + app.html + app.css +
+    // app.spec.ts — the old app.component.* names have not been generated
+    // since v19, so writing them left the real demo component untouched and
+    // the new files dead. main.ts imports { App } from "./app/app", so the
+    // file name and the class name both have to match. `standalone` is the
+    // default now and the generated component no longer declares it.
     commands.push(
       heredoc(
-        "src/app/app.component.ts",
+        "src/app/app.ts",
         `import { Component } from "@angular/core";
 
 @Component({
   selector: "app-root",
-  standalone: true,
   imports: [],
   template: \`
     <main class="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-8">
       <div class="max-w-md text-center space-y-4">
         <h1 class="text-3xl font-bold">{{ title }}</h1>
-        <p class="text-zinc-400">Your StackWizard app is running. Edit <code>src/app/app.component.ts</code> to start building.</p>
+        <p class="text-zinc-400">Your StackWizard app is running. Edit <code>src/app/app.ts</code> to start building.</p>
       </div>
     </main>
   \`,
   styles: [],
 })
-export class AppComponent {
-  title = "StackWizard app is running";
+export class App {
+  protected readonly title = "StackWizard app is running";
 }`
       ),
       heredoc(
-        "src/app/app.component.spec.ts",
+        "src/app/app.spec.ts",
         `import { TestBed } from "@angular/core/testing";
-import { AppComponent } from "./app.component";
+import { App } from "./app";
 
-describe("AppComponent", () => {
+describe("App", () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AppComponent],
+      imports: [App],
     }).compileComponents();
   });
 
   it("should create the app", () => {
-    const fixture = TestBed.createComponent(AppComponent);
+    const fixture = TestBed.createComponent(App);
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it("should render the title", () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
+  it("should render the title", async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector("h1")?.textContent).toContain("StackWizard");
   });
 });`
       ),
-      `rm -f src/app/app.component.html src/app/app.component.css`
+      `rm -f src/app/app.html src/app/app.css`
     );
     notes.push(
       "Replaces the demo component with a Tailwind starter (inline template, no html/css files)",
@@ -1636,7 +1681,7 @@ if (root) {
 // frameworks not listed here (unknown only). Everything else gets the
 // right plugin + a working flat config — never a React config for Vue.
 
-function lintConfig(family: "vue" | "react" | "svelte", ts: boolean): string {
+function lintConfig(family: "vue" | "react" | "svelte" | "vanilla", ts: boolean): string {
   const tsImport = ts ? 'import tseslint from "typescript-eslint";\n' : "";
   const tsWrapOpen = ts ? "export default tseslint.config(" : "export default [";
   const tsWrapClose = ts ? ");" : "];";
@@ -1646,13 +1691,17 @@ function lintConfig(family: "vue" | "react" | "svelte", ts: boolean): string {
       ? '  ...vue.configs["flat/recommended"],\n'
       : family === "svelte"
         ? '  ...svelte.configs["flat/recommended"],\n'
-        : "  react.configs.flat.recommended,\n";
+        : family === "react"
+          ? "  react.configs.flat.recommended,\n"
+          : "";
   const pluginImport =
     family === "vue"
       ? 'import vue from "eslint-plugin-vue";\n'
       : family === "svelte"
         ? 'import svelte from "eslint-plugin-svelte";\n'
-        : 'import react from "eslint-plugin-react";\n';
+        : family === "react"
+          ? 'import react from "eslint-plugin-react";\n'
+          : "";
   const reactSettings =
     family === "react"
       ? ", settings: { react: { version: \"detect\" } }"
@@ -1662,7 +1711,9 @@ function lintConfig(family: "vue" | "react" | "svelte", ts: boolean): string {
       ? '["dist", ".svelte-kit", "build", "node_modules"]'
       : family === "react"
         ? '["dist", "build", "out", "node_modules"]'
-        : '["dist", "node_modules"]';
+        : family === "vanilla"
+          ? '[".vite", "out", "node_modules"]'
+          : '["dist", "node_modules"]';
   return `import js from "@eslint/js";
 ${tsImport}${pluginImport}import globals from "globals";
 import prettier from "eslint-config-prettier";
@@ -1751,7 +1802,22 @@ function eslintSteps(
       },
     ];
   }
-  if (framework === "react-vite" || framework === "tauri" || framework === "electron" || framework === "wails") {
+  if (framework === "electron") {
+    // Electron Forge's Vite template is vanilla JS/TS — src/renderer.js,
+    // src/main.js, no component library at all. eslint-plugin-react there
+    // lints rules for a framework the project never installs.
+    return [
+      {
+        command: `${t.addDev} eslint@^9 ${base}${tsPkgs}`,
+        note: "Adds ESLint (Forge's Vite template is vanilla — no React plugin)",
+      },
+      {
+        command: heredoc("eslint.config.js", lintConfig("vanilla", ts)),
+        note: `Creates a${ts ? " TypeScript" : " JavaScript"} flat config`,
+      },
+    ];
+  }
+  if (framework === "react-vite" || framework === "tauri" || framework === "wails") {
     return [
       {
         command: `${t.addDev} eslint@^9 ${base}${tsPkgs} eslint-plugin-react@^7`,
@@ -1777,7 +1843,7 @@ function eslintSteps(
   return [];
 }
 
-function devCommand(
+export function devCommand(
   pm: PackageManagerId,
   platform: PlatformId,
   framework: string,
@@ -1839,6 +1905,40 @@ function devCommand(
   };
 }
 
+// Wails keeps its package.json under frontend/ — the project root holds
+// go.mod and main.go and no package.json at all, so a dependency command
+// run there installs into the wrong place (or dies under `set -e`).
+// Applied after merging so back-to-back installs still collapse first.
+function runInFrontend(steps: BuildStep[], pm: PackageManagerId, framework: string): BuildStep[] {
+  if (framework !== "wails") return steps;
+  const t = pmCommands(pm);
+  const prefixes = [t.add, t.addDev, t.install];
+  return steps.map((s) => {
+    if (s.command.includes("\n")) return s; // heredocs already name frontend/ paths
+    if (s.command.startsWith("cd ")) return s; // already scoped (__WAILS_INSTALL__)
+    if (!prefixes.some((p) => s.command === p || s.command.startsWith(`${p} `))) return s;
+    return { ...s, command: `cd frontend && ${s.command} && cd ..` };
+  });
+}
+
+// Sections are numbered while they are built (1 create, 2 styling, 3 code
+// health, 4+ one per add-on group), so any section that emits nothing leaves
+// a hole — Next.js + Tailwind runs no styling command at all and the copied
+// list jumps straight from "1" to "3". Renumber whatever actually made it
+// into the output, in order of first appearance. The unnumbered "Start"
+// section is left alone.
+function renumberSections(steps: BuildStep[]): BuildStep[] {
+  const numbers = new Map<string, number>();
+  for (const s of steps) {
+    if (/^\d+ · /.test(s.section) && !numbers.has(s.section)) numbers.set(s.section, numbers.size + 1);
+  }
+  return steps.map((s) => {
+    const m = /^\d+ · (.+)$/.exec(s.section);
+    if (!m) return s;
+    return { ...s, section: `${numbers.get(s.section)} · ${m[1]}` };
+  });
+}
+
 // Merge back-to-back installs with the same tool into one command,
 // e.g. `bun add a` + `bun add b` → `bun add a b`. Dev and prod adds never merge.
 function mergeInstallSteps(steps: BuildStep[]): BuildStep[] {
@@ -1858,9 +1958,13 @@ function mergeInstallSteps(steps: BuildStep[]): BuildStep[] {
   return out;
 }
 
-export function assemble(selections: WizardSelections): BuildStep[] {
+export function assemble(input: WizardSelections): BuildStep[] {
+  // Defence in depth: a stale share link (or a Wizard bug) can carry picks the
+  // current platform/framework hides. Normalising here means no hidden pick
+  // can ever reach a generated command, an env key or a stub file.
+  const selections = normalizeSelections(input);
   const { language, framework, styling, packageManager: pm } = selections;
-  const platform: PlatformId = selections.platform ?? "web";
+  const platform: PlatformId = selections.platform;
   // Nothing picked yet — show a prompt, not half a setup.
   if (!framework) {
     return [
@@ -1910,21 +2014,30 @@ export function assemble(selections: WizardSelections): BuildStep[] {
       let note = (fw.notes[i] ?? "").replaceAll("my-app", dir).replaceAll("MyApp", dir);
       if (framework === "tauri" && language !== "typescript") note = note.replaceAll("React-TS", "React");
       if (framework === "electron" && language !== "typescript") note = note.replaceAll("Vite + TypeScript", "Vite + JavaScript");
-      // Vue's scaffolder is interactive unless told otherwise — pass the
-      // picks as flags (verified non-interactive). create-vue has no
-      // no-TypeScript flag, so JavaScript stays a manual step on purpose.
+      // create-vue runs interactively unless it gets a feature flag. npm /
+      // yarn / pnpm need a `--` separator or they eat the flag themselves;
+      // bunx passes flags straight through and would read a literal `--` as
+      // the project directory — an invalid package name, which drops
+      // create-vue back into the "Use TypeScript?" prompt and hangs setup.sh
+      // forever. create-vue still has no no-TypeScript flag (--default now
+      // scaffolds TypeScript too), so JavaScript stays a manual step.
       if (framework === "vue" && /(create-)?vue@latest/.test(cmd)) {
         if (language === "typescript") {
-          cmd = cmd.replace(/((?:create-)?vue@latest) (\S+)$/, "$1 -- --ts $2");
+          const sep = pm === "bun" ? "" : "-- ";
+          cmd = cmd.replace(/((?:create-)?vue@latest) (\S+)$/, `$1 ${sep}--ts $2`);
           note = `${note} (runs without prompts)`;
         } else {
           note = `${note} — answer the prompts yourself (say No to TypeScript for JavaScript)`;
         }
       }
       // `sv create` replaced `npm create svelte` (which now only prints a
-      // deprecation notice). Flags make it fully non-interactive.
+      // deprecation notice). Flags make it fully non-interactive — but
+      // `--types` only accepts `ts` or `jsdoc`; plain JavaScript is the
+      // negated flag. `--types no-types` exits 1 ("argument 'no-types' is
+      // invalid") before scaffolding anything.
       if (framework === "sveltekit" && cmd.includes("sv@latest create")) {
-        cmd += ` --template minimal --types ${language === "typescript" ? "ts" : "no-types"} --no-add-ons --no-install`;
+        const types = language === "typescript" ? "--types ts" : "--no-types";
+        cmd += ` --template minimal ${types} --no-add-ons --no-install`;
       }
       // nuxi demands its picks up front in a pipe (it errors instead of
       // prompting). Template v4, your manager, no double install, no git.
@@ -2150,6 +2263,9 @@ module.exports = {
             heredoc(`${libDir(framework)}/stripe.${ext}`, stripeStub(selections)),
             `Creates the Stripe client${serverSideNote}`
           );
+          if (framework === "nextjs") {
+            for (const r of nextServiceRoutes(selections, "stripe")) push(section, r.command, r.note);
+          }
         }
         if (groupId === "payments" && opt.id === "razorpay" && platform !== "mobile") {
           ensureDir(section, libDir(framework));
@@ -2160,6 +2276,9 @@ module.exports = {
               ? "Opens the Razorpay popup (order comes from your server — secrets stay on a server)"
               : "Opens the Razorpay popup (order comes from your server route)"
           );
+          if (framework === "nextjs") {
+            for (const r of nextServiceRoutes(selections, "razorpay")) push(section, r.command, r.note);
+          }
         }
         if (groupId === "payments" && opt.id === "paypal" && platform !== "mobile") {
           ensureDir(section, libDir(framework));
@@ -2224,6 +2343,7 @@ module.exports = {
             heredoc(`${libDir(framework)}/auth.${ext}`, STUB_NEXTAUTH_LIB),
             "Configures Auth.js (GitHub provider — keys already in your .env)"
           );
+          for (const r of nextServiceRoutes(selections, "nextauth")) push(section, r.command, r.note);
         }
       }
       // Server side for Stripe on stacks without API routes (see the
@@ -2506,7 +2626,7 @@ try {
     seen.add(s.command);
     return true;
   });
-  return mergeInstallSteps(deduped);
+  return renumberSections(runInFrontend(mergeInstallSteps(deduped), pm, framework));
 }
 
 // ---- One-file setup script: everything in one go, prompts auto-answered ----
@@ -2524,7 +2644,7 @@ function needsAutoYes(cmd: string): boolean {
   // Flag-driven scaffolds never prompt: create-vue with --ts/--default and
   // `sv create` with --template/--types/--no-add-ons. (Bare `create vue@`
   // without flags stays manual — piping `yes` into its prompts hangs.)
-  if (/create vue@|sv@latest create/.test(head)) return false;
+  if (/create[- ]vue@|create[- ]vite@|sv@latest create/.test(head)) return false;
   if (/(^|\s)(create|init)(-|$|\s)/i.test(head)) return true;
   return /(nuxi|@angular\/cli|@nestjs\/cli new|@ionic\/cli)/i.test(head);
 }
@@ -2586,7 +2706,10 @@ export function buildScript(steps: BuildStep[]): string {
 
 // ---- AI assistant rules files (stack-aware, generated from live selections) ----
 const AI_RULE_FILES: Record<string, string> = {
-  __AI_RULES_CURSOR__: ".muserules",
+  // Cursor reads project rules from .cursor/rules/*.mdc (each with YAML
+  // frontmatter); the single-file .cursorrules form is the deprecated
+  // legacy one and ".muserules" was never a file Cursor reads at all.
+  __AI_RULES_CURSOR__: ".cursor/rules/stackwizard.mdc",
   __AI_RULES_COPILOT__: ".github/copilot-instructions.md",
   __AI_RULES_CLAUDE__: "CLAUDE.md",
   __AI_RULES_WINDSURF__: ".windsurfrules",
@@ -2655,7 +2778,20 @@ function aiRulesBody(sel: WizardSelections): string {
 
 function aiRulesCommand(token: string, sel: WizardSelections): string {
   const file = AI_RULE_FILES[token] ?? "AGENTS.md";
-  return [`cat > ${file} <<'EOF'`, aiRulesBody(sel), "EOF"].join("\n");
+  // .mdc rules only load when the frontmatter says so — alwaysApply: true is
+  // the "always in context" rule type.
+  const body =
+    token === "__AI_RULES_CURSOR__"
+      ? [
+          "---",
+          "description: Project stack and rules (generated by StackWizard)",
+          "alwaysApply: true",
+          "---",
+          "",
+          aiRulesBody(sel),
+        ].join("\n")
+      : aiRulesBody(sel);
+  return [`cat > ${file} <<'EOF'`, body, "EOF"].join("\n");
 }
 
 // ---- Post-setup guide (START_HERE.md, always generated) -------------------
@@ -2705,28 +2841,42 @@ function testCmdFor(sel: WizardSelections): string {
   return picked === "maestro" || picked === "detox" ? runner : `${pmCommands(sel.packageManager).pmx} ${runner}`;
 }
 
-// "Still needs code" list for the guide — same source of truth as the
-// wizard's on-page panel. Commands scaffold; they don't write app code.
-function codeGapsFor(sel: WizardSelections, platform: PlatformId): string[] {
+// "Still needs code" list — the single source of truth for both the guide
+// (START_HERE.md) and the wizard's on-page panel. Commands scaffold; they
+// don't write app code, so name exactly what is left.
+export function codeGapsFor(sel: WizardSelections, platform: PlatformId): string[] {
+  const s = normalizeSelections(sel);
   const gaps: string[] = [];
-  if ((sel.addons.backend || "none") !== "none") gaps.push("API: add GET /health + login checks.");
-  if ((sel.addons.auth || "none") !== "none") {
+  if ((s.addons.backend || "none") !== "none") gaps.push("API: add GET /health + login checks.");
+  const auth = s.addons.auth || "none";
+  if (auth !== "none") {
     gaps.push(
       platform === "mobile"
         ? "Login: wire the provider SDK into your navigation."
         : platform === "desktop"
           ? "Login: wire the provider SDK into your app window."
-          : "Login: add callback route + session check."
+          : auth === "clerk" && s.framework === "nextjs"
+            ? "Login: wrap your layout in <ClerkProvider> + add sign-in buttons."
+            : auth === "nextauth"
+              ? "Login: add your OAuth credentials + check the session with auth()."
+              : "Login: add callback route + session check."
     );
   }
-  const pay = sel.addons.payments || "none";
+  const pay = s.addons.payments || "none";
   if (pay !== "none" && pay !== "lemonsqueezy") {
+    // Stripe + Razorpay on Next.js scaffold their own server routes — the
+    // gap there is fulfillment, not plumbing.
+    const routeIncluded = s.framework === "nextjs" && (pay === "stripe" || pay === "razorpay");
     gaps.push(
       pay === "revenuecat"
         ? "Payments: connect App Store / Play in the RevenueCat dashboard."
         : platform === "desktop"
           ? "Payments: verify on your server — desktop apps can't hold secret keys."
-          : "Payments: add a webhook route."
+          : platform === "mobile"
+            ? "Payments: verify purchases on your server — never trust the client alone."
+            : routeIncluded
+              ? "Payments: fulfill orders in the generated route (TODO inside)."
+              : "Payments: add a webhook route."
     );
   }
   return gaps;
@@ -2799,31 +2949,6 @@ function startHereBody(sel: WizardSelections): string {
     "Regenerate this setup any time at StackWizard — Download .sh again."
   );
   return lines.join("\n");
-}
-
-export function defaultSelections(): WizardSelections {
-  return {
-    platform: "web",
-    target: "android",
-    appName: "my-app",
-    language: "",
-    framework: "",
-    styling: "",
-    packageManager: "npm",
-    toggles: { "eslint-prettier": true, husky: false, structure: true },
-    addons: {
-      backend: "",
-      database: "",
-      orm: "",
-      auth: "",
-      payments: "",
-      graphics: "",
-      testing: "",
-      cicd: "",
-      ai: "",
-      skills: "",
-    },
-  };
 }
 
 export const PRESETS: { id: string; label: string; detail: string; selections: WizardSelections }[] = [

@@ -52,7 +52,7 @@ export default function Nav() {
           <div className="flex items-center">
             <Link
               href="#build"
-              className={`anim-cta-glow rounded-full bg-ember px-4 py-2 text-sm font-semibold text-white transition-all duration-500 hover:bg-ember-deep ${
+              className={`anim-cta-glow rounded-full bg-ember-deep px-4 py-2 text-sm font-semibold text-white transition-all duration-500 hover:brightness-90 ${
                 scrolled ? "px-5" : ""
               }`}
             >

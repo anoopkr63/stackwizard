@@ -1,4 +1,4 @@
-import { defaultSelections } from "./assemble";
+import { defaultSelections, normalizeSelections } from "./selections";
 import type { WizardSelections } from "./types";
 
 type Bag = Record<string, unknown>;
@@ -60,7 +60,26 @@ function asBag(v: unknown): Bag {
 // Only non-default picks are encoded, so links stay short and readable.
 // Unknown codes are ignored (forward compatible); legacy ?s= links keep working.
 
-const ROUTE_CODES: Record<string, "platform" | "target" | "appName" | "language" | "framework" | "styling" | "packageManager" | "backend" | "database" | "orm" | "auth" | "payments" | "testing" | "cicd" | "ai" | "skills"> = {
+type RouteField =
+  | "platform"
+  | "target"
+  | "appName"
+  | "language"
+  | "framework"
+  | "styling"
+  | "packageManager"
+  | "backend"
+  | "database"
+  | "orm"
+  | "auth"
+  | "payments"
+  | "graphics"
+  | "testing"
+  | "cicd"
+  | "ai"
+  | "skills";
+
+const ROUTE_CODES: Record<string, RouteField> = {
   p: "platform",
   t: "target",
   n: "appName",
@@ -73,11 +92,26 @@ const ROUTE_CODES: Record<string, "platform" | "target" | "appName" | "language"
   o: "orm",
   au: "auth",
   pay: "payments",
+  gr: "graphics",
   te: "testing",
   ci: "cicd",
   ai: "ai",
   sk: "skills",
 };
+
+// Which ROUTE_CODES fields live in `addons` rather than at the top level.
+const ADDON_FIELDS: RouteField[] = [
+  "backend",
+  "database",
+  "orm",
+  "auth",
+  "payments",
+  "graphics",
+  "testing",
+  "cicd",
+  "ai",
+  "skills",
+];
 
 export function encodeRoute(s: WizardSelections): string {
   const def = defaultSelections();
@@ -136,11 +170,13 @@ export function decodeRoute(combo: string | null): WizardSelections | null {
         else if (value === "no-structure") { mt.structure = false; seen++; }
         continue;
       }
+      // Own-property lookup only: a bare index would resolve inherited keys
+      // like `__proto__` or `constructor` to a function and pollute the bag.
+      if (!Object.hasOwn(ROUTE_CODES, code)) continue;
       const field = ROUTE_CODES[code];
-      if (!field) continue;
       if (field === "platform" && value !== "mobile" && value !== "desktop" && value !== "web") continue;
       // Core answers live top-level; addon answers live inside addons.
-      if (["backend", "database", "orm", "auth", "payments", "testing", "cicd", "ai", "skills"].includes(field)) {
+      if (ADDON_FIELDS.includes(field)) {
         ma[field] = value;
       } else {
         (m as Bag)[field] = value;
@@ -149,7 +185,9 @@ export function decodeRoute(combo: string | null): WizardSelections | null {
     }
     if (!seen) return null;
     // Reuse the same normalization as legacy links (blanks, "none", appName).
-    return decodeSelections(encodeSelections(merged)) ?? merged;
+    // decodeSelections ends in normalizeSelections, so an unknown or hidden
+    // value from the URL can never reach the generator (defect 1).
+    return decodeSelections(encodeSelections(merged)) ?? normalizeSelections(merged);
   } catch {
     return null;
   }
@@ -187,7 +225,10 @@ export function decodeSelections(raw: string | null): WizardSelections | null {
     // Links shared before the app-name field existed have none — the default.
     if (typeof p.appName !== "string" || !p.appName.trim()) p.appName = "my-app";
     else p.appName = p.appName.trim().slice(0, 60);
-    return merged;
+    // Last word: anything not in data/*.json — or hidden for this
+    // platform/framework/addon combo — is dropped before it can reach the
+    // generator, where values are interpolated into shell heredocs.
+    return normalizeSelections(merged);
   } catch {
     return null;
   }

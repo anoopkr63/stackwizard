@@ -1,8 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import addons from "@/data/addons.json";
-import { assemble, buildScript, catalogFor, defaultSelections, isOptionVisible, PRESETS, sanitizeAppName } from "@/lib/assemble";
+import {
+  assemble,
+  buildScript,
+  catalogFor,
+  codeGapsFor,
+  defaultSelections,
+  isOptionVisible,
+  PRESETS,
+  sanitizeAppName,
+} from "@/lib/assemble";
+import { copyText as writeClipboard } from "@/lib/clipboard";
+import {
+  clearShareUrl,
+  setAddon,
+  setField,
+  setMultiAddon,
+  setToggle,
+  switchPlatform as switchPlatformState,
+} from "@/lib/wizard-state";
 import { decodeRoute, decodeSelections, encodeRoute } from "@/lib/share";
 import type { PlatformId, WizardSelections } from "@/lib/types";
 import { SectionEyebrow, SectionSub, SectionTitle } from "./Section";
@@ -40,6 +58,24 @@ export default function Wizard() {
   const { sel, setSel } = useSelection();
   const [copied, setCopied] = useState<"commands" | "link" | null>(null);
   const [copiedGroup, setCopiedGroup] = useState<number | null>(null);
+  const [copyFailed, setCopyFailed] = useState(false);
+  // Every timer and object URL this component hands to the browser, so an
+  // unmount mid-countdown can't call setState on a dead component or leak the
+  // generated script blob.
+  const timers = useRef<number[]>([]);
+  const objectUrls = useRef<string[]>([]);
+  useEffect(
+    () => () => {
+      timers.current.forEach((t) => window.clearTimeout(t));
+      timers.current = [];
+      objectUrls.current.forEach((u) => URL.revokeObjectURL(u));
+      objectUrls.current = [];
+    },
+    []
+  );
+  const later = (ms: number, fn: () => void) => {
+    timers.current.push(window.setTimeout(fn, ms));
+  };
 
   // Load shared selections once — short route /s/<combo> first, legacy ?s=
   // fallback. Mount-only client init (window doesn't exist during SSR, so this
@@ -77,34 +113,26 @@ export default function Wizard() {
     return `${window.location.origin}${path}`;
   }, [sel]);
 
-  // Share links are built on demand (copy-link button) — picking answers
-  // keeps the address bar clean. If the page was opened on a shared link,
-  // the first change drops it back to "/" so the URL never lies.
-  function touch() {
-    if (typeof window !== "undefined" && window.location.pathname !== "/") {
-      window.history.replaceState(null, "", "/");
-    }
+  // One funnel for every edit: run the change through lib/wizard-state (which
+  // normalizes, so hidden picks never linger), drop the copy badges, and drop
+  // a stale /s/ or ?s= address so the URL never describes an older stack.
+  function edit(fn: (prev: WizardSelections) => WizardSelections) {
+    setSel((prev) => fn(prev));
+    setCopied(null);
+    setCopiedGroup(null);
+    setCopyFailed(false);
+    clearShareUrl();
   }
 
-  const set = <K extends keyof WizardSelections>(key: K, value: WizardSelections[K]) => {
-    setSel((prev) => ({ ...prev, [key]: value }));
-    setCopied(null);
-    setCopiedGroup(null);
-    touch();
-  };
+  const set = <K extends keyof WizardSelections>(key: K, value: WizardSelections[K]) =>
+    edit((prev) => setField(prev, key, value));
 
   function resetAll() {
-    setSel(defaultSelections());
-    setCopied(null);
-    setCopiedGroup(null);
-    touch();
+    edit(() => defaultSelections());
   }
 
   function applyPreset(selections: WizardSelections) {
-    setSel(selections);
-    setCopied(null);
-    setCopiedGroup(null);
-    touch();
+    edit(() => selections);
   }
 
   const ormHidden = ["", "none", "supabase", "firebase"].includes(sel.addons.database || "none");
@@ -115,115 +143,64 @@ export default function Wizard() {
   const appRaw = (sel.appName ?? "").trim();
 
   function switchPlatform(p: PlatformId) {
-    touch();
-    setSel((prev) => {
-      const next: WizardSelections = {
-        ...prev,
-        platform: p,
-        language: "",
-        framework: "",
-        styling: "",
-        addons: { ...prev.addons },
-      };
-      // Fresh platform, fresh rules — drop picks the new platform doesn't offer
-      // (e.g. NextAuth on mobile) instead of leaving a dropdown blank.
-      for (const g of addons.groups) {
-        if (!g.options) continue;
-        const cur = next.addons[g.id] || "none";
-        const opt = g.options.find((o) => o.id === cur);
-        if (cur !== "none" && (!opt || !isOptionVisible(opt, next))) {
-          next.addons[g.id] = "";
-        }
-      }
-      return next;
-    });
-    setCopied(null);
-    setCopiedGroup(null);
+    // Re-clicking the platform you are already on used to wipe every pick.
+    if (p === platform) return;
+    edit((prev) => switchPlatformState(prev, p));
   }
 
   // Commands scaffold + write wired service clients; they don't write app
-  // code. Name exactly what's left so the user isn't surprised after the
-  // last command runs.
-  const codeGaps = useMemo(() => {
-    const gaps: string[] = [];
-    if ((sel.addons.backend || "none") !== "none") {
-      gaps.push(
-        "API: add GET /health + login checks."
-      );
-    }
-    if ((sel.addons.auth || "none") !== "none") {
-      const auth = sel.addons.auth || "none";
-      gaps.push(
-        platform === "mobile"
-          ? "Login: wire the provider SDK into your navigation."
-          : platform === "desktop"
-            ? "Login: wire the provider SDK into your app window."
-            : auth === "clerk" && sel.framework === "nextjs"
-              ? "Login: wrap your layout in <ClerkProvider> + add sign-in buttons."
-              : auth === "nextauth"
-                ? "Login: add your OAuth credentials + check the session with auth()."
-                : "Login: add callback route + session check."
-      );
-    }
-    const pay = sel.addons.payments || "none";
-    if (pay !== "none" && pay !== "lemonsqueezy") {
-      // Stripe + Razorpay on Next.js already scaffold their server routes
-      // (webhook / order + verify) when Production folders is on — the gap
-      // is fulfillment, not plumbing.
-      const routeIncluded =
-        sel.framework === "nextjs" && sel.toggles.structure && (pay === "stripe" || pay === "razorpay");
-      gaps.push(
-        pay === "revenuecat"
-          ? "Payments: connect App Store / Play in the RevenueCat dashboard."
-          : platform === "desktop"
-            ? "Payments: verify on your server — desktop apps can't hold secret keys."
-            : platform === "mobile"
-              ? "Payments: verify purchases on your server — never trust the client alone."
-              : routeIncluded
-                ? "Payments: fulfill orders in the generated route (TODO inside)."
-                : "Payments: add a webhook route."
-      );
-    }
-    return gaps;
-  }, [sel, platform]);
+  // code. codeGapsFor names what's left so the user isn't surprised after the
+  // last command runs — shared with the generator so both agree.
+  const codeGaps = useMemo(() => codeGapsFor(sel, platform), [sel, platform]);
 
-  async function writeClipboard(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      ta.remove();
-    }
-  }
+  // One polite announcement per regeneration. The command list itself is not
+  // a live region: announcing every line on every keystroke is unusable.
+  const status = useMemo(
+    () =>
+      sel.framework
+        ? `${platformLabel} · ${sel.framework} — ${groups.length} step${groups.length === 1 ? "" : "s"} ready.`
+        : "Pick a framework to generate your commands.",
+    [platformLabel, sel.framework, groups.length]
+  );
 
   async function copyText(text: string, which: "commands" | "link") {
-    await writeClipboard(text);
+    const ok = await writeClipboard(text);
     setCopiedGroup(null);
-    setCopied(which);
-    window.setTimeout(() => setCopied(null), 2000);
+    setCopyFailed(!ok);
+    setCopied(ok ? which : null);
+    later(2000, () => {
+      setCopied(null);
+      setCopyFailed(false);
+    });
   }
 
   async function copyGroup(text: string, gi: number) {
-    await writeClipboard(text);
+    const ok = await writeClipboard(text);
     setCopied(null);
-    setCopiedGroup(gi);
-    window.setTimeout(() => setCopiedGroup(null), 2000);
+    setCopyFailed(!ok);
+    setCopiedGroup(ok ? gi : null);
+    later(2000, () => {
+      setCopiedGroup(null);
+      setCopyFailed(false);
+    });
   }
 
   function downloadScript() {
     const blob = new Blob([buildScript(steps)], { type: "text/x-sh" });
     const url = URL.createObjectURL(blob);
+    objectUrls.current.push(url);
     const a = document.createElement("a");
     a.href = url;
     a.download = "setup.sh";
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    // Firefox and Safari read the blob asynchronously after click(); revoking
+    // in the same tick cancels the download. Hold it, then release.
+    later(60_000, () => {
+      URL.revokeObjectURL(url);
+      objectUrls.current = objectUrls.current.filter((u) => u !== url);
+    });
   }
 
   const cat = (id: string) => catalogFor(platform).categories.find((c) => c.id === id);
@@ -305,7 +282,7 @@ export default function Wizard() {
                 maxLength={60}
                 autoComplete="off"
                 spellCheck={false}
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm font-medium text-ink placeholder:text-muted/60 focus:border-ember focus:outline-none"
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm font-medium text-ink placeholder:text-muted focus:border-ember focus:outline-none"
               />
               {appRaw && appRaw !== appDir && (
                 <p className="mt-1.5 text-[13px] text-muted">
@@ -321,7 +298,7 @@ export default function Wizard() {
               <fieldset>
                 <legend className="display mb-3 text-lg font-semibold">
                   Target — pick your phone{" "}
-                  <span className="ml-1 rounded-full bg-ember px-2.5 py-0.5 align-middle text-xs font-bold uppercase tracking-wider text-white">
+                  <span className="ml-1 rounded-full bg-ember-deep px-2.5 py-0.5 align-middle text-xs font-bold uppercase tracking-wider text-white">
                     Required
                   </span>
                 </legend>
@@ -401,7 +378,7 @@ export default function Wizard() {
                       <input
                         type="checkbox"
                         checked={!!sel.toggles[t.id]}
-                        onChange={(e) => { touch(); setSel((p) => ({ ...p, toggles: { ...p.toggles, [t.id]: e.target.checked } })); }}
+                        onChange={(e) => edit((p) => setToggle(p, t.id, e.target.checked))}
                         className="field-check"
                       />
                       <span>
@@ -433,16 +410,7 @@ export default function Wizard() {
                             id={`a-${g.id}`}
                             label={g.label}
                             value={picked}
-                            onChange={(ids) => {
-                              touch();
-                              setSel((p) => ({
-                                ...p,
-                                addons: {
-                                  ...p.addons,
-                                  [g.id]: ids.length ? ids.join(",") : "",
-                                },
-                              }));
-                            }}
+                            onChange={(ids) => edit((p) => setMultiAddon(p, g.id, ids))}
                             options={g
                               .options!.filter(
                                 (o) => o.id !== "none" && isOptionVisible(o, sel)
@@ -459,38 +427,7 @@ export default function Wizard() {
                           id={`a-${g.id}`}
                           label={g.label}
                           value={sel.addons[g.id] || ""}
-                          onChange={(v) => {
-                            touch();
-                            setSel((p) => {
-                              const next: WizardSelections = {
-                                ...p,
-                                addons: { ...p.addons, [g.id]: v },
-                              };
-                              // A changed pick can orphan others (e.g. DB away
-                              // from MongoDB with Mongoose set) — blank picks
-                              // that are no longer visible instead of leaving
-                              // a stale value behind.
-                              for (const gg of addons.groups) {
-                                if (!gg.options) continue;
-                                if (gg.id === "skills") continue; // multi-value, validated per-id below
-                                if (
-                                  gg.id === "orm" &&
-                                  ["", "none", "supabase", "firebase"].includes(
-                                    next.addons.database || "none"
-                                  )
-                                ) {
-                                  next.addons.orm = "";
-                                  continue;
-                                }
-                                const cur = next.addons[gg.id] || "none";
-                                const opt = gg.options.find((o) => o.id === cur);
-                                if (cur !== "none" && (!opt || !isOptionVisible(opt, next))) {
-                                  next.addons[gg.id] = "";
-                                }
-                              }
-                              return next;
-                            });
-                          }}
+                          onChange={(v) => edit((p) => setAddon(p, g.id, v))}
                           options={g.options!.filter((o) => isOptionVisible(o, sel))}
                           placeholder={g.help}
                         />
@@ -510,7 +447,7 @@ export default function Wizard() {
           <div className="lg:sticky lg:top-24 lg:self-start">
             <div className="overflow-hidden rounded-xl bg-night text-white shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
-                <p className="font-mono text-xs uppercase tracking-widest text-white/60">
+                <p className="font-mono text-xs uppercase tracking-widest text-white/75">
                   Your commands · {groups.length} steps
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -526,26 +463,28 @@ export default function Wizard() {
                     onClick={() => copyText(shareUrl, "link")}
                     className="whitespace-nowrap rounded-full border border-white/25 px-3 py-1.5 text-xs font-semibold hover:bg-white/10"
                   >
-                    {copied === "link" ? "Link copied ✓" : "Copy share link"}
+                    {copied === "link" ? "Link copied ✓" : copyFailed ? "Press Ctrl+C" : "Copy share link"}
                   </button>
                   <button
                     type="button"
                     onClick={() => copyText(commandText, "commands")}
-                    className="whitespace-nowrap rounded-full bg-ember px-3 py-1.5 text-xs font-semibold text-white hover:bg-ember-deep"
+                    className="whitespace-nowrap rounded-full bg-ember-deep px-3 py-1.5 text-xs font-semibold text-white transition-[filter] hover:brightness-90"
                   >
-                    {copied === "commands" ? "Copied ✓" : "Copy all"}
+                    {copied === "commands" ? "Copied ✓" : copyFailed ? "Press Ctrl+C" : "Copy all"}
                   </button>
                 </div>
               </div>
+              <p role="status" className="sr-only">
+                {copyFailed ? "Copy failed — press Ctrl+C to copy the selection." : status}
+              </p>
               <div
                 className="max-h-[380px] overflow-y-auto bg-night-soft p-4 font-mono text-[13px] leading-7 sm:text-sm"
-                aria-live="polite"
                 aria-label="Generated terminal commands"
               >
                 {groups.map((g, gi) => (
                   <div key={g.section} className="group mb-3 last:mb-0">
                     <div className="mb-1 flex items-center justify-between gap-2">
-                      <p className="font-sans text-[11px] font-bold uppercase tracking-widest text-white/40">
+                      <p className="font-sans text-[11px] font-bold uppercase tracking-widest text-white/70">
                         {g.section}
                       </p>
                       {!g.steps.every((s) => s.command.startsWith("#")) && (
@@ -554,9 +493,9 @@ export default function Wizard() {
                         onClick={() => copyGroup(g.steps.map((s) => s.command).join("\n"), gi)}
                         aria-label={`Copy ${g.section}`}
                         title="Copy this step"
-                        className="shrink-0 rounded-md px-1.5 py-0.5 font-sans text-[11px] font-semibold text-white/40 opacity-0 transition-opacity hover:bg-white/10 hover:text-white focus-visible:opacity-100 group-hover:opacity-100"
+                        className="shrink-0 rounded-md border border-white/25 px-1.5 py-0.5 font-sans text-[11px] font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                       >
-                        {copiedGroup === gi ? "Copied" : "Copy"}
+                        {copiedGroup === gi ? "Copied" : copyFailed ? "Ctrl+C" : "Copy"}
                       </button>
                       )}
                     </div>
@@ -571,7 +510,7 @@ export default function Wizard() {
                           )}
                           {extra ? s.command.split("\n")[0] : s.command}
                           {extra > 0 && (
-                            <span className="block text-xs text-white/40">
+                            <span className="block text-xs text-white/70">
                               … {extra} more lines — pastes as one block
                             </span>
                           )}
@@ -603,7 +542,7 @@ export default function Wizard() {
                 ))}
               </div>
               <div className="mt-4 rounded-xl bg-parchment p-3 text-sm text-muted">
-                Run it all at once with Download .sh — or hover any step to copy it.
+                Run it all at once with Download .sh — or hit Copy on any step.
               </div>
               {codeGaps.length > 0 && (
                 <div className="mt-3 rounded-xl border border-dashed border-ink/30 p-3 text-sm">

@@ -34,7 +34,7 @@ export default function Footer() {
   return (
     <footer className="bg-cream px-3 pb-6 pt-14 sm:px-6">
       <Reveal>
-        <div className="mx-auto max-w-6xl rounded-[2rem] bg-ember px-6 py-10 text-white sm:px-10 sm:py-12">
+        <div className="mx-auto max-w-6xl rounded-[2rem] bg-ember-deep px-6 py-10 text-white sm:px-10 sm:py-12">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
             <p className="display shrink-0 text-2xl font-bold leading-none">
               Stack
@@ -43,12 +43,12 @@ export default function Footer() {
             </p>
             <div className="w-full">
               {status === "done" ? (
-                <p role="status" className="rounded-full bg-white/20 px-6 py-4 text-base text-white sm:text-lg">
+                <p role="status" className="rounded-full bg-black/20 px-6 py-4 text-base text-white sm:text-lg">
                   You&apos;re in! Watch your inbox for launch news.
                 </p>
               ) : (
                 <form
-                  className="flex w-full items-center gap-2 rounded-full bg-white/20 p-2 pl-6"
+                  className="flex w-full items-center gap-2 rounded-full bg-black/20 p-2 pl-6"
                   onSubmit={subscribe}
                 >
                   <label htmlFor="footer-email" className="sr-only">
@@ -62,7 +62,7 @@ export default function Footer() {
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={status === "sending"}
                     placeholder="Email for launch news"
-                    className="w-full bg-transparent text-base text-white placeholder:text-white/70 focus:outline-none disabled:opacity-60 sm:text-lg"
+                    className="w-full rounded-sm bg-transparent text-base text-white placeholder:text-white/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60 sm:text-lg"
                   />
                   <button
                     type="submit"
@@ -80,35 +80,35 @@ export default function Footer() {
               )}
               <div className="mt-8 grid grid-cols-2 gap-6 text-sm sm:grid-cols-4">
                 <div>
-                  <p className="font-semibold uppercase tracking-widest text-white/70">Build</p>
+                  <p className="font-semibold uppercase tracking-widest text-white">Build</p>
                   <ul className="mt-2 space-y-1.5">
-                    <li><Link href="#build" className="transition-opacity hover:opacity-75 hover:underline">Build my stack</Link></li>
-                    <li><Link href="#examples" className="transition-opacity hover:opacity-75 hover:underline">Presets</Link></li>
-                    <li><Link href="#how" className="transition-opacity hover:opacity-75 hover:underline">How it works</Link></li>
+                    <li><Link href="#build" className="hover:underline">Build my stack</Link></li>
+                    <li><Link href="#examples" className="hover:underline">Presets</Link></li>
+                    <li><Link href="#how" className="hover:underline">How it works</Link></li>
                   </ul>
                 </div>
                 <div>
-                  <p className="font-semibold uppercase tracking-widest text-white/70">Learn</p>
+                  <p className="font-semibold uppercase tracking-widest text-white">Learn</p>
                   <ul className="mt-2 space-y-1.5">
-                    <li><Link href="#guide" className="transition-opacity hover:opacity-75 hover:underline">Guide</Link></li>
-                    <li><Link href="#faq" className="transition-opacity hover:opacity-75 hover:underline">Questions</Link></li>
+                    <li><Link href="#guide" className="hover:underline">Guide</Link></li>
+                    <li><Link href="#faq" className="hover:underline">Questions</Link></li>
                   </ul>
                 </div>
                 <div>
-                  <p className="font-semibold uppercase tracking-widest text-white/70">Platforms</p>
+                  <p className="font-semibold uppercase tracking-widest text-white">Platforms</p>
                   <ul className="mt-2 space-y-1.5">
-                    <li><Link href="#build" className="transition-opacity hover:opacity-75 hover:underline">Web · live</Link></li>
-                    <li><Link href="#build" className="transition-opacity hover:opacity-75 hover:underline">Mobile · live</Link></li>
-                    <li><Link href="#build" className="transition-opacity hover:opacity-75 hover:underline">Desktop · live</Link></li>
+                    <li><Link href="#build" className="hover:underline">Web · live</Link></li>
+                    <li><Link href="#build" className="hover:underline">Mobile · live</Link></li>
+                    <li><Link href="#build" className="hover:underline">Desktop · live</Link></li>
                   </ul>
                 </div>
                 <div>
-                  <p className="font-semibold uppercase tracking-widest text-white/70">Project</p>
+                  <p className="font-semibold uppercase tracking-widest text-white">Project</p>
                   <ul className="mt-2 space-y-1.5">
-                    <li><Link href="/contact" className="transition-opacity hover:opacity-75 hover:underline">Contact</Link></li>
-                    <li><Link href="/privacy" className="transition-opacity hover:opacity-75 hover:underline">Privacy</Link></li>
-                    <li><Link href="/terms" className="transition-opacity hover:opacity-75 hover:underline">Terms</Link></li>
-                    <li><Link href="#top" className="transition-opacity hover:opacity-75 hover:underline">Back to top</Link></li>
+                    <li><Link href="/contact" className="hover:underline">Contact</Link></li>
+                    <li><Link href="/privacy" className="hover:underline">Privacy</Link></li>
+                    <li><Link href="/terms" className="hover:underline">Terms</Link></li>
+                    <li><Link href="#top" className="hover:underline">Back to top</Link></li>
                   </ul>
                 </div>
               </div>

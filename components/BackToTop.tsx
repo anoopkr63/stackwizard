@@ -17,6 +17,10 @@ export default function BackToTop() {
     <button
       type="button"
       aria-label="Back to top"
+      // Hidden by opacity only — without these it stayed in the tab order and
+      // in the a11y tree, so keyboard users hit an invisible button.
+      aria-hidden={!show}
+      tabIndex={show ? 0 : -1}
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       className={`fixed bottom-5 right-5 z-40 grid h-11 w-11 place-items-center rounded-full border border-line bg-white text-lg font-bold shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-ink ${
         show ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"

@@ -8,7 +8,7 @@ import { useSelection } from "./SelectionProvider";
 const FAQS = [
   {
     q: "Do I need to know the terminal already?",
-    a: "No. Every box starts blank — answer only what you need. Then hover any numbered block, hit Copy, and paste it into Terminal (Mac) or Git Bash (Windows) and press Enter. “What each step does” labels every line, and only the final line keeps running — everything before it finishes and exits.",
+    a: "No. Every box starts blank — answer only what you need. Then hit Copy on any numbered block and paste it into Terminal (Mac) or Git Bash (Windows) and press Enter. “What each step does” labels every line, and only the final line keeps running — everything before it finishes and exits.",
   },
   {
     q: "What is the smallest thing I can start with?",
@@ -20,7 +20,7 @@ const FAQS = [
   },
   {
     q: "What if I pick the wrong option?",
-    a: "Change the dropdown and the commands regenerate instantly — nothing is installed by choosing. Hit Copy share link and the address holds that exact setup, so no pick is permanent. Incompatible pairs (Mongoose without MongoDB, Supabase Auth with Firebase) go blank automatically.",
+    a: "Change the dropdown and the commands regenerate instantly — nothing is installed by choosing. Hit Copy share link to copy a link holding that exact setup — the address bar itself stays clean — so no pick is permanent. Incompatible pairs (Mongoose without MongoDB, Supabase Auth with Firebase) go blank automatically.",
   },
   {
     q: "Does StackWizard touch my machine or need my passwords?",
